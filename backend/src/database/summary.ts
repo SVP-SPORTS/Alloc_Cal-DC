@@ -33,7 +33,7 @@ Summary.init({
       sizeQuantities: {
         type: DataTypes.JSONB,
        
-      },
+      }, 
      
       total: { 
         type: DataTypes.INTEGER,
@@ -52,6 +52,10 @@ Summary.init({
         type: new DataTypes.STRING(255),
         
         
+      },
+      store_id: {
+        type: DataTypes.INTEGER,
+       
       },
       description: {
         type: new DataTypes.TEXT,

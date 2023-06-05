@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { DataTable } from './user'; 
-import { TextInput, Button, Grid,Col,Group, Center } from '@mantine/core';
+import { TextInput, Button, Grid, Col, Group, Center } from '@mantine/core';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 export const DataSearch: React.FC = () => {
   const [po_no, setPo_no] = useState("");
   const [style_no, setStyle_no] = useState("");
   
   const [data, setData] = useState(null);
-  
+  const navigate = useNavigate();
+
   const fetchData = async () => {
     if (po_no && style_no) {
       try {
@@ -22,31 +24,33 @@ export const DataSearch: React.FC = () => {
     }
   };
 
-  
+  const pushData = () => {
+    navigate("/storedata", { state: { data: data } });
+  };
   
   return (
     <div>
-      <Grid gutter="lg"   justify="center">
+      <Grid gutter="lg" justify="center">
         <Col span={4}>
           <TextInput
-        placeholder="PO number"
-        value={po_no}
-        onChange={e => setPo_no(e.target.value.toLowerCase())}
-      />
-      <TextInput
-        placeholder="Style number"
-        value={style_no}
-        onChange={e => setStyle_no(e.target.value.toLowerCase())}
-      />
-      </Col>
+            placeholder="PO number"
+            value={po_no}
+            onChange={e => setPo_no(e.target.value.toLowerCase())}
+          />
+          <TextInput
+            placeholder="Style number"
+            value={style_no}
+            onChange={e => setStyle_no(e.target.value.toLowerCase())}
+          />
+        </Col>
       </Grid>
-      <Center style={{marginTop: "15px", marginBottom:"10px"}} >
-      <Group position="center" spacing="lg">
-      <Button onClick={fetchData}>Search</Button>
-    </Group>
-    </Center>
+      <Center style={{marginTop: "15px", marginBottom:"10px"}}>
+        <Group position="center" spacing="lg">
+          <Button onClick={fetchData}>Search</Button>
+          {data && <Button onClick={pushData}>Push</Button>}
+        </Group>
+      </Center>
       {data && <DataTable data={data} />}
     </div>
   );
 };
- 

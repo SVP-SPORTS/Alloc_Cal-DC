@@ -120,9 +120,9 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <div>
       <Paper p="md" shadow="xs" style={{ marginBottom: '1rem' }}>
-        <Text align="center" size="xl" weight={500}>
+       <Text align="center" size="xl" weight={500}>
           Store Allocation Calculator
-        </Text>
+        </Text> 
       </Paper>
       <Container>
         <Table id="table-to-print-2">

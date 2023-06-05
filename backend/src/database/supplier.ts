@@ -28,6 +28,7 @@ Supplier.init(
       unique: true,
       primaryKey: true,
     },
+    
   },
   
   {

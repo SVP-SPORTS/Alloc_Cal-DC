@@ -22,7 +22,9 @@ Style.init(
         references: {
           model: Supplier, // reference to the Supplier model
           key: "supplier_name",
+          
         },
+        onUpdate:"CASECADE"
       },
     style_no: {
       type: new DataTypes.STRING(255),

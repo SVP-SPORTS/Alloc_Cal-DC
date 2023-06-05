@@ -1,5 +1,6 @@
-import { Col, Container, Grid, Input,  Table, TextInput } from '@mantine/core';
+import { Button, Col, Container, Grid, Input,  Table, TextInput } from '@mantine/core';
 import React, { useState, useEffect } from 'react';
+import {  useNavigate } from 'react-router-dom';
 
 interface SizeQuantity {
   size: string;
@@ -8,7 +9,10 @@ interface SizeQuantity {
 
 interface DataTableProps {
   data: StoreData[];
+  
 }
+
+
 
 interface StoreData {
   allocation_id: number;
@@ -36,11 +40,39 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
     setName(prevName => ({...prevName, [name]: value}));
   };
 
+  // Use the useNavigate hook to get the navigate function.
+  const navigate = useNavigate();
   
+  // Create a function that will be called when the user clicks the push button.
+ 
 
   const handleTotalNamesChange = (storeId: number, value: string) => {
     setTotalNames(prevNames => ({...prevNames, [storeId]: value}));
   };
+
+
+  ///
+  // Inside your handlePushButtonClick function:
+const handlePushButtonClick = async (storeId: number) => {
+  const response = await fetch(`http://localhost:5000/api/store_data/${storeId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ 
+      totalNames: totalNames[storeId], 
+      ...name // contains the sizes and their quantities
+    })
+  });
+  
+  if (response.ok) {
+    // Maybe you want to navigate to the store page here
+    navigate(`/store/${storeId}`);
+  } else {
+    console.error("Failed to update store data");
+  }
+};
+
 
   useEffect(() => {
     const allSizes: string[] = [];
@@ -80,7 +112,7 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
 
     overstock[size] = receivedQuantities[size] - totalAllocation[size];
   });
-    
+     
 
   return (
     <div>
@@ -190,7 +222,11 @@ export const DataTable: React.FC<DataTableProps> = ({ data }) => {
                     />
                   </td>
                      
-                    
+                  <td>
+              <Button onClick={() => handlePushButtonClick(store.allocation_id)}>
+                Push to Store
+              </Button>
+            </td>
                  
           
                 

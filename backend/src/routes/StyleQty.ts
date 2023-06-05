@@ -30,9 +30,20 @@ router.post('/add', async (req: Request, res: Response) => {
     res.status(500).json("Hardik You are failed.")
 }
 
-    
+        
    
 });
+
+router.get('/get', async (req: Request, res: Response) => {
+  try {
+    const styleQuantitiesData = await StyleQuantities.findAll();
+    res.status(200).json(styleQuantitiesData);
+  } catch (error) {
+    console.error('Error fetching style quantities:', error);
+    res.status(500).json({ error: 'An error occurred while fetching style quantities.' });
+  }
+});
+
  
 
 export default router; 

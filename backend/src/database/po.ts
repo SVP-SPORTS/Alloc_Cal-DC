@@ -23,7 +23,7 @@ PurchaseOrder.init(
       references: {
         model: Supplier,
         key: "supplier_name",
-        
+         
       }
         },
   },
