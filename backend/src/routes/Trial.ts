@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import Data from '../database/trial';// Update with the path to your store model file
-import Store from '../database/store';
+import Store from '../database/StorePushData';
 
 const router = express.Router();
 

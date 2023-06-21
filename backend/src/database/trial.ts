@@ -1,9 +1,9 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from "../sequelize"; 
-import Supplier from './supplier';
-import Style from './style';
-import PurchaseOrder from './po';
-import Store from './store';
+import Supplier from './SupplierData';
+import Style from './StyleData';
+import PurchaseOrder from './PurchaseOrderData';
+import Store from './StorePushData';
 
 class Data extends Model {
   public storeName!: string;
