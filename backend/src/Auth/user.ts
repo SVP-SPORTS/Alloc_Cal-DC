@@ -1,14 +1,14 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../sequelize';
 
-
 class User extends Model {
   public _id!: string;
   public email!: string;
   public password!: string;
   public first_name!: string;
   public last_name!: string;
-  public scope!: string;
+  public scope!: 'User' | 'Admin' | 'SuperAdmin';
+  public location!: string;
 }
 
 User.init({
@@ -36,14 +36,20 @@ User.init({
     allowNull: false,
   },
   scope: {
+    type: DataTypes.ENUM('User', 'Admin', 'SuperAdmin'),
+    defaultValue: 'Admin'
+  },
+  location : {
     type: DataTypes.STRING,
-    allowNull: true,
+    defaultValue: 'DC'
   }
+  
 }, {
   sequelize,
-  modelName: 'User',
+  modelName: 'User', 
   tableName: 'users',
   timestamps: false,
 });
 
 export default User;
+ 

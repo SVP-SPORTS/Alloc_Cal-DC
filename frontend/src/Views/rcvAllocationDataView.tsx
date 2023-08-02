@@ -16,6 +16,20 @@ pdfMake.vfs = pdfFonts.pdfMake.vfs;
 interface SizeQuantity {
   size: string;
   quantity: number;
+  sku: string;
+} 
+
+interface StyleData {
+  
+  supplier_name: string;
+  style_no: string;
+  description: string;
+  color: string;
+  cost: number;
+  msrp: number;
+  total_qty: number;
+  location: string;
+  first_name: string;
 }
 
 interface AllocationData {
@@ -24,7 +38,10 @@ interface AllocationData {
   style_no: string;
   supplierName: string;
   poNo: string;
+  skuNumbers: string[];
   sizeQuantities: SizeQuantity[][];
+  styles: StyleData;
+
 }
 
 const initialFilterState = {
@@ -94,18 +111,18 @@ const AllocTable: React.FC = () => {
   }
 
   useEffect(() => {
-    const fetchAllocations = async () => {
-      const response = await axios.get<AllocationData[]>('http://localhost:5000/api/allocation/');
-      setAllocations(response.data);
-      setIsLoading(false); // set loading to false after data is fetched
-    };
-
-    fetchAllocations();
+    fetch('http://localhost:5000/api/allocation/')
+      .then(response => response.json())
+      .then(jsonData => {
+        console.log(jsonData); // <- add this line
+        setAllocations(jsonData);
+      })
+      .catch(error => console.error('Error fetching data:', error));
   }, []);
+  
 
-  if (isLoading) {
-    return <p>Loading...</p>; // return a loading indicator
-  }
+
+
 
 
  
@@ -119,6 +136,58 @@ const AllocTable: React.FC = () => {
      <Table>
     <thead>
       <tr>
+      <th>
+          <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+            SKU
+          </Text>
+            </th>
+            <th>
+          <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+            Style No
+          </Text>  
+            </th>
+            <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                    Description
+                  </Text>  
+                    </th>
+                    <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                    Color
+                  </Text>  
+                    </th>
+                    <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                   Cost
+                  </Text>  
+                    </th>
+                    <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                    MSRP
+                  </Text>  
+                    </th>
           <th> 
                 <Text 
                   ta="center"
@@ -126,30 +195,23 @@ const AllocTable: React.FC = () => {
                   fw={600}>Store Name
                 </Text>
           </th>
-          <th>
-          <Text 
-                  ta="center"
-                  fz="lg"
-                  fw={600}>
-            Style Number
-          </Text>  
-            </th>
+          
           <th >
           <Text 
                   ta="center"
                   fz="lg"
                   fw={600}>
-            Supplier Name
-          </Text>
+            Supplier          </Text>
             </th>
           <th>
           <Text 
                   ta="center"
                   fz="lg"
                   fw={600}>
-            Purchase Order Number
+            PO NO
           </Text>
             </th>
+          
           <th>
           <Text 
                   ta="center"
@@ -158,7 +220,8 @@ const AllocTable: React.FC = () => {
             Size
           </Text>
             </th>
-          <th >
+           
+          <th>            
           <Text 
                   ta="center"
                   fz="lg"
@@ -178,7 +241,8 @@ const AllocTable: React.FC = () => {
       </thead>
       <tbody>
       {Array.isArray(filteredData) && filteredData
-  .filter((row) => (!filter.styleNo || row.style_no.toLowerCase().includes(filter.styleNo.toLowerCase())))
+  .filter((row) => row.style_no && row.style_no.toLowerCase().includes(searchTerm.toLowerCase()))
+
   .flatMap((allocation, index) => 
     allocation.storeName
     .filter(storeName => (!filter.storeName || storeName.toLowerCase().includes(filter.storeName.toLowerCase())))
@@ -189,10 +253,18 @@ const AllocTable: React.FC = () => {
       );
       return allocation.sizeQuantities[i].map((sq, j) => (
         <tr key={`${allocation.allocation_id}-${storeName}-${j}`}>
+           <td>{allocation.skuNumbers[j]}</td>
+            {/* Here you can access the style properties */}
+            <td>{j === 0 ? allocation.style_no : ""}</td>
+         <td >{j === 0 && allocation.styles ? allocation.styles.description : ''}</td>
+        <td >{j === 0 && allocation.styles ? allocation.styles.color : ''}</td>
+        <td >{j === 0 && allocation.styles ? allocation.styles.cost : ''}</td>
+        <td >{j === 0 && allocation.styles ? allocation.styles.msrp : ''}</td>
           <td>{j === 0 ? storeName : ""}</td>
-          <td>{j === 0 ? allocation.style_no : ""}</td>
+          
           <td>{j === 0 ? allocation.supplierName : ""}</td>
           <td>{j === 0 ? allocation.poNo : ""}</td>
+         
           <td>{sq.size}</td>
           <td>{sq.quantity}</td>
           <td>{j === 0 ? total : ""}</td> {/* display total only on the first row */}

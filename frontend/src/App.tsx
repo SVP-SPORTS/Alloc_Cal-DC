@@ -6,7 +6,7 @@ import AllocationTables from './components/Calculator/allocationCalculator';
 //import { DataSearch } from './components/pop';
 import {  Route, Routes } from 'react-router-dom';
 import HomePage from './components/Navigation/parentHome';
-import StorePage from './components/floorFetch/showOnWeb';
+
 import AllocTable from './Views/rcvAllocationDataView';
 import StylesTable from './Views/styleDataView';
 import StyleQuantitiesTable from './Views/styleRCVQtyView';
@@ -17,6 +17,9 @@ import RegisterPage from './Authentication/RegisterPage';
 //import AllocationTable from './components/AllocationTable';
 import PrivateRoute from './components/privateRoute/privateRoute';
 import AllocationComponent from './components/floorFetch/userLead';
+import AllocationComponent1 from './components/floorFetch/showOnWeb';
+
+import UserEditor from './Views/userList';
 //import DataTable from './components/user';
 
 
@@ -31,6 +34,7 @@ function App() {
 		first_name: "",
 		last_name: "",
 		scope: "", 
+		location: "",
 	});
 	useEffect(() => {
 		async function loadUserSession() {
@@ -60,16 +64,18 @@ function App() {
 						<Route path="register" element={<RegisterPage />} />
 					</Route>
       <Route path="/" element={<HomePage setNavbarOpened={setNavbarOpened}/>} />
+	  
 	  <Route path="/allocCal" element={<PrivateRoute page={<AllocationTables />} />} />
       <Route path="/floorUser" element={<PrivateRoute page={<AllocationComponent />} />} />
-      <Route path="/storedata" element={<StorePage  />} />
+      <Route path="/storedata" element={<AllocationComponent1 />} />
       <Route path="/allocData" element={<PrivateRoute page={<AllocTable />} />}/>
       <Route path="/styleData" element={<PrivateRoute page={<StylesTable />} />}/>
       <Route path="/styleqty" element={<PrivateRoute page={<StyleQuantitiesTable />} />}/>
+	  <Route path="/users" element={<PrivateRoute page={<UserEditor />} />}/>
       
 					<Route errorElement={"Error occured"} />
     </Routes>
-   
+    
  
    </UserContext.Provider>
    </>

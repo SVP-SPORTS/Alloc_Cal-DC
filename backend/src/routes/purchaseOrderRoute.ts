@@ -3,6 +3,7 @@ import PurchaseOrder from '../database/PurchaseOrderData';
 import Supplier from '../database/SupplierData';
 import sequelize from '../sequelize';
 
+
 const router = express.Router();
 
 router.post('/', async (req: Request, res: Response) => {

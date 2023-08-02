@@ -9,6 +9,20 @@ import { IconDownload, IconFilter, IconFilterX } from '@tabler/icons-react';
 interface ReceivedQty{
   size: string;
   quantity: number;
+  
+}
+
+interface StyleData {
+  
+  supplier_name: string;
+  style_no: string;
+  description: string;
+  color: string;
+  cost: number;
+  msrp: number;
+  total_qty: number;
+  location: string;
+  first_name: string;
 }
 
 interface AllocationData {
@@ -19,7 +33,9 @@ interface AllocationData {
   totalAllocationPerSize: number[];
   overstockPerSize: number[];
   poNo: string;
+  skuNumbers: string[];
   styleQty_id: number;
+  styles: StyleData;
 }
 
 const initialFilterState = {
@@ -42,12 +58,13 @@ const useStyles = createStyles((theme) => ({
   },
   table: {
     width: '100%',
-    tableLayout: 'fixed',
+    //tableLayout: 'fixed',
     borderCollapse: 'collapse',
     border: '1px solid',
   },
   tableCell: {
     border: '1px solid',
+    //maxWidth:500
   },
 }));
 
@@ -98,6 +115,14 @@ const StyleQuantitiesTable: React.FC = () => {
               <thead className={classes.tableCell}>
                 <tr className="tableHeader">
                 <th>
+          <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+            SKU
+          </Text>
+            </th> 
+                <th>
                   <Text 
                   ta="center"
                   fz="lg"
@@ -112,15 +137,51 @@ const StyleQuantitiesTable: React.FC = () => {
                   fz="lg"
                   fw={600}>
                
-                    Supplier Name
+                    Description
+                  </Text>  
+                    </th>
+                    <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                    Color
+                  </Text>  
+                    </th>
+                    <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                   Cost
+                  </Text>  
+                    </th>
+                    <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                    MSRP
+                  </Text>  
+                    </th>
+                    <th>
+                  <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+               
+                    Supplier
                   </Text>  
                     </th>
                     <th>
           <Text 
                   ta="center"
-                  fz="lg"
+                  fz="md"
                   fw={600}>
-            Purchase Order Number
+            PO No.
           </Text>
             </th>
             <th >
@@ -131,6 +192,7 @@ const StyleQuantitiesTable: React.FC = () => {
             Total
           </Text>
             </th>
+          
             <th>
           <Text 
                   ta="center"
@@ -144,9 +206,10 @@ const StyleQuantitiesTable: React.FC = () => {
                   ta="center"
                   fz="lg"
                   fw={600}>
-           RCV Quantity
+           RCV Qty
           </Text>
-            </th>                  
+            </th>
+                           
             <th>
           <Text 
                   ta="center"
@@ -167,22 +230,34 @@ const StyleQuantitiesTable: React.FC = () => {
                 </tr>
               </thead>
               <tbody className={classes.tableCell}>
-  {Array.isArray(filteredData) && filteredData
-    .filter((row) => row.style_no.toLowerCase().includes(searchTerm.toLowerCase()))
-    .flatMap((allocation, index) => (
-      allocation.receivedQty.map((rq, rqIndex) => (
-        <tr key={`${index}-${rqIndex}`} className={classes.tableCell}>
-          <td className={classes.tableCell}>{rqIndex === 0 ? allocation.style_no : ''}</td>
-          <td className={classes.tableCell}>{rqIndex === 0 ? allocation.supplierName : ''}</td>
-          <td className={classes.tableCell} >{rqIndex === 0 ? allocation.poNo : ''}</td>
-          <td className={classes.tableCell}>{rqIndex === 0 ? allocation.total : ''}</td>
-          <td className={classes.tableCell}>{rq.size}</td>
-          <td className={classes.tableCell}>{rq.quantity}</td>
-          <td className={classes.tableCell}>{allocation.totalAllocationPerSize[rqIndex]}</td>
-          <td className={classes.tableCell}>{allocation.overstockPerSize[rqIndex]}</td>
-        </tr>
-      ))
-    ))}
+              {Array.isArray(filteredData) && filteredData
+  .filter((row) => row.style_no.toLowerCase().includes(searchTerm.toLowerCase()))
+  .flatMap((allocation, index) => (
+    allocation.receivedQty.map((rq, rqIndex) => (
+      <tr key={`${index}-${rqIndex}`} className={classes.tableCell}>
+        <td className={classes.tableCell}>{allocation.skuNumbers[rqIndex]}</td>
+        <td className={classes.tableCell}>{rqIndex === 0 ? allocation.style_no : ''}</td>
+         {/* Here you can access the style properties */}
+         <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.description : ''}</td>
+        <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.color : ''}</td>
+        <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.cost : ''}</td>
+        <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.msrp : ''}</td>
+
+        <td className={classes.tableCell}>{rqIndex === 0 ? allocation.supplierName : ''}</td>
+        <td className={classes.tableCell} >{rqIndex === 0 ? allocation.poNo : ''}</td>
+        <td className={classes.tableCell}>{rqIndex === 0 ? allocation.total : ''}</td>
+        <td className={classes.tableCell}>{rq.size}</td>
+        <td className={classes.tableCell}>{rq.quantity}</td>
+        
+        <td className={classes.tableCell}>{allocation.totalAllocationPerSize[rqIndex]}</td>
+        <td className={classes.tableCell}>{allocation.overstockPerSize[rqIndex]}</td>
+        
+       
+        
+      </tr>
+    )) 
+  ))}
+
 </tbody>
             </Table>
           </Paper>

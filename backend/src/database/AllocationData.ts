@@ -3,10 +3,11 @@ import sequelize from "../sequelize";
 import Supplier from './SupplierData';
 import Style from './StyleData';
 import PurchaseOrder from './PurchaseOrderData';
-import Store from './StorePushData';
+
 
 class Allocation extends Model {
   public allocation_id!: number;
+  public sku!: string;
   public storeName!: any[]; 
   public sizeQuantities!: any[]; 
   public receivedQty!: any[];
@@ -16,7 +17,11 @@ class Allocation extends Model {
   public style_no!: string;
   public supplierName!: string;
   public poNo!: string;
+  public location!: string;
   public initial!: any[];
+  public skuNumbers! : any[];
+  public first_name!: string;
+  public showOnWeb! : boolean;
 }
 
 Allocation.init({
@@ -24,6 +29,10 @@ Allocation.init({
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true
+  },
+  skuNumbers: {
+    type: DataTypes.JSONB,
+    allowNull: false
   },
   storeName: {
     type: DataTypes.JSONB,
@@ -79,12 +88,26 @@ Allocation.init({
     },
     onUpdate:"CASECADE"
   },
+  // Add in your allocation model fields
+showOnWeb: {
+  type: DataTypes.BOOLEAN,
+  allowNull: false,
+  defaultValue: true
+},
+  location: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  first_name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  }
 }, {
   sequelize, 
   tableName: "allocations",
 });
 
-Allocation.belongsTo(PurchaseOrder, { foreignKey: 'poNo', targetKey: 'po_no' });
+Allocation.belongsTo(PurchaseOrder, { foreignKey: 'poNo', targetKey: 'po_no',  as: 'PurchaseOrders' });
 Allocation.belongsTo(Style, { foreignKey: 'style_no', as: 'styles' }); 
 Allocation.belongsTo(Supplier, { foreignKey: 'supplierName', as: 'suppliers'})
 

@@ -3,9 +3,11 @@ import { useState, useContext } from "react";
 import { UserContext } from "../App";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import Homepage from "../components/Navigation/parentHome";
 
 function LoginProfilePage() {
 	const [loginCredentials, setLoginCredentials] = useState({ email: "", password: "" });
+	const [navbarOpened, setNavbarOpened] = useState(false);
 	const navigate = useNavigate();
 	const {
 		authenticatedUser,
@@ -119,7 +121,10 @@ function LoginProfilePage() {
 	};
 
 	return (
-		<Container>
+		<>	
+		<Homepage setNavbarOpened={setNavbarOpened}/>
+		<Container style={{marginTop: "80px"}}>
+			
 			{authenticatedUser._id !== null && authenticatedUser._id !== undefined ? (
 				<>
 					<Title>Hi {authenticatedUser.first_name},</Title>
@@ -237,6 +242,8 @@ function LoginProfilePage() {
 				</>
 			)}
 		</Container>
+		</>
+	
 	);
 }
 export default LoginProfilePage;

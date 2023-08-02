@@ -21,7 +21,7 @@ const initialFilterState = {
   styleNo: '',
   description: '',
   color: ''
-};
+};  
 
 const useStyles = createUseStyles({
   fixedBar: {
@@ -89,7 +89,7 @@ const StylesTable: React.FC = () => {
     let tempData = [...data];
     for (const row of editedData) {
       try {
-        const response = await axios.put(`http://localhost:5000/api/style/update/${row.style_no}`, row);
+        const response = await axios.put(`http://localhost:5000/api/style/update/${row.style_no}`, row, { withCredentials: true });
         if (response.status === 200) {
           tempData = tempData.map(item => {
             if (item.style_no === row.style_no) {

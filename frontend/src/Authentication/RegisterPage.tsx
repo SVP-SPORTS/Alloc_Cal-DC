@@ -8,6 +8,7 @@ function RegisterPage() {
 		password: "",
 		first_name: "",
 		last_name: "",
+		location: "",
 	});
 	const [showRegistrationError, setShowRegistrationError] = useState(false);
 
@@ -77,6 +78,15 @@ function RegisterPage() {
 						withAsterisk
 						onChange={(event) =>
 							setRegisterCredentials({ ...registerCredentials, last_name: event.target.value })
+						}
+					/>
+					<TextInput
+						placeholder="Location"
+						label="Location"
+						value={registerCredentials.location}
+						withAsterisk
+						onChange={(event) =>
+							setRegisterCredentials({ ...registerCredentials, location: event.target.value })
 						}
 					/>
 				</SimpleGrid>

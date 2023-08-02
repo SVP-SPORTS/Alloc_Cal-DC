@@ -4,6 +4,7 @@ interface IUserSessionInfo {
 	first_name: string;
 	last_name: string;
 	scope: string;
+	location:string;
 }
 
 interface IUpdateProfile {

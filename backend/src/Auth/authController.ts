@@ -1,7 +1,12 @@
 import bcryptjs from "bcryptjs";
 import User from './user';
-import { v4 as uuidv4 } from 'uuid';
 
+import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; 
 
 const checkIfUserExists = async (email: string) => {
   let response: {
@@ -29,7 +34,9 @@ const addUser = async (user: IRegisterNewUser): Promise<boolean> => {
       email: user.email,
       password: hashedPassword,
       first_name: user.first_name,
-      last_name: user.last_name
+      last_name: user.last_name,
+      location: user.location, // added location
+      scope: user.scope,
     });
     if (newUser) {
       userAddedSuccess = true;
@@ -54,7 +61,15 @@ const getUserCredentials = async (email: string): Promise<IUserCredentialsFromDa
   try {
     const user = await User.findOne({ where: { email } });
     if (user) {
-      return user.get();
+      return {
+        _id: user._id,
+        email: user.email,
+        password: user.password,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        location: user.location,
+        scope: user.scope,
+      };
     }
   } catch (e) {
     console.error(e);
@@ -94,9 +109,77 @@ const updateProfile = async (user: IUpdateProfile) => {
   return 400;
 };
 
+// Generate JWT Token
+const generateToken = (user: IUserSessionInfo): string => {
+  return jwt.sign({ _id: user._id, email: user.email, scope: user.scope }, JWT_SECRET, { expiresIn: '1h' });
+};
+
+// Verify JWT Token
+const verifyToken = (token: string): IUserSessionInfo | null => {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded as IUserSessionInfo;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Add new login function
+const loginUser = async (credentials: { email: string, password: string }) => {
+  const user = await getUserCredentials(credentials.email);
+  if (!user) return { message: 'User not found', status: 404 };
+
+  const passwordCheck = await bcryptjs.compare(credentials.password, user.password);
+  if (!passwordCheck) return { message: 'Invalid credentials', status: 401 };
+
+  // create a session info object
+  const sessionInfo: IUserSessionInfo = {
+    _id: user._id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    scope: user.scope,
+    location: user.location,
+  };
+
+  // Generate JWT Token
+  const token = generateToken(sessionInfo);
+
+  return { token, status: 200 };
+};
+
+///GET ALL USERS
+
+const getAllUsers = async (): Promise<IUserSessionInfo[] | null> => {
+  try {
+    const users = await User.findAll(); // excludes the password field
+    if (users) {
+      return users.map(user => {
+        return {
+          _id: user._id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          location: user.location,
+          scope: user.scope,
+        };
+      });
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return null;
+};
+
+
+
+
 export default {
   registerNewUser,
   getUserCredentials,
   updateProfile,
+  generateToken,
+  verifyToken,
+  loginUser,
+  getAllUsers
 };
-

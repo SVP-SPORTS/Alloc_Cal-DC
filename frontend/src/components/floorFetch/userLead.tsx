@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Button, Col, Container, Grid, Input, Table, TextInput, Text, Center, MantineProvider, Group } from '@mantine/core';
+import { Button, Col, Container, Grid, Input, Table, TextInput, Text, Center, MantineProvider, Group, Select } from '@mantine/core';
 import Homepage from '../Navigation/parentHome';
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 
+
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
+
+type OrientationType = 'portrait' | 'landscape';
 
 const AllocationComponent: React.FC = () => {
     const [allocationData, setAllocationData] = useState<any>(null);
@@ -17,11 +24,13 @@ const AllocationComponent: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageData, setImageData] = useState<string>("");
+  
+
   
 
 
-
-
+  
   
     useEffect(() => {
       // Fetch allocation data when the component mounts
@@ -33,26 +42,23 @@ const AllocationComponent: React.FC = () => {
     // Add any additional helper functions or hooks you need
     // For example, a function to fetch the allocation data based on po_no and style_no:
     const fetchAllocationData = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const response = await axios.get(`http://localhost:5000/api/allocation/style_no/${styleNo}/poNo/${poNo}`);
-          setAllocationData(response.data);
-          setIsLoading(false);
-        } catch (error) {
-          console.error(error);
-          setError('The provided styleNo or poNo does not exist or match any records.');
-          setIsLoading(false);
-        }
-        try {
-          const response = await axios.get(`http://localhost:5000/api/style/style_no/${styleNo}`);
-          setStyleData(response.data);
-        } catch (error) {
-          console.error(error);
-          setError('The provided styleNo does not exist or match any records.');
-        }
-      };
-  
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get(`http://localhost:5000/api/allocation/style_no/${styleNo}/poNo/${poNo}`, {withCredentials:true});
+        setStyleData(response.data.style);
+        setAllocationData(response.data.allocation);
+        setIsLoading(false);
+      } catch (error) {
+        console.error(error);
+        setError('The provided styleNo or poNo does not exist or match any records.');
+        setIsLoading(false);
+      }
+    };
+     
+   
+
+
 
     useEffect(() => {
 
@@ -71,6 +77,7 @@ if(allocationData?.sizeQuantities){
         calculateTotalAllocation();
         calculateOverstockTotal();
         calculateOverstockPerSize();
+        
       // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [allocationData]);
   
@@ -249,58 +256,262 @@ const handleInitialChange = (event: React.ChangeEvent<HTMLInputElement>, index: 
   };
   
   
-  const checkIfStoreExists = async (storeName: string): Promise<boolean> => {
-    try {
-      const response = await axios.get(`http://localhost:5000/api/store/store-data/${storeName}`);
-      return response.status === 200;
-    } catch (error) {
-      console.error(error);
-      return false;
+   // Add handlers for file and image URL inputs
+   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageData(reader.result as string);
+      };
+      reader.readAsDataURL(e.target.files[0]);
     }
   };
-  
-  const sendDataToBackend = async (data: object) => {
-    try {
-      const response = await axios.post('http://localhost:5000/api/store/store-data', data);
-      return response.data;
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  
-  const updateDataInBackend = async (storeName: string, data: object) => {
-    try {
-      await axios.put(`http://localhost:5000/api/store/store-data/${storeName}`, data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-   
-  
-  const handlePushToStore = async (storeIndex: number) => {
-    const storeData = {
-      storeName: allocationData.storeName[storeIndex],
-      style_number: styleData.style_no,
-      supplierName: styleData.supplier_name,
-      poNo: allocationData.poNo,
-      sizeQuantities: allocationData.sizeQuantities[storeIndex],
-      total: storeTotals[storeIndex],
+
+  const handleImageUrlChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageData(reader.result as string);
     };
-    
-    console.log(storeData);  // print out the storeData to check it's correctly formatted
-  
-    // Check if the store data already exists in the backend
-    if (await checkIfStoreExists(storeData.storeName)) {
-      // If it exists, update it
-      const updateResponse = await updateDataInBackend(storeData.storeName, storeData);
-      console.log(updateResponse);  // print out the response from the update request
+    reader.readAsDataURL(blob);
+  };
+//state to check the orientation
+
+
+const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
+
+// Handler for orientation change
+const handleOrientationChange = (value: 'portrait' | 'landscape') => {
+  setOrientation(value);
+};
+
+// Function to generate code
+const generateCode = (): string => {
+  // Find index of "Steeles" in storeName array
+  const steelesIndex = allocationData.storeName.findIndex((store: string) => store.toUpperCase() === 'STEELES');
+
+  // If "Steeles" is not found, return an error or handle this situation as needed
+  if(steelesIndex === -1) return 'Steeles not found';
+
+  // Get total for "Steeles"
+  const steelesTotal = storeTotals[steelesIndex];
+
+  // Get current month and year
+  const date = new Date();
+  const month = date.getMonth() + 1; // JavaScript Date's getMonth() method returns a zero-based month, so we add 1
+  const year = date.getFullYear();
+
+  // Calculate code
+  const code = overstockTotal + steelesTotal;
+
+  // Handle cost
+  let cost: string = '';
+  const costValue = parseFloat(styleData.cost.toString());
+  if (isNaN(costValue)) {
+    return 'Cost is not a number';
+  } else {
+    if (Number.isInteger(costValue)) {
+      cost = costValue.toString();
     } else {
-      // If it doesn't exist, create it
-      const createResponse = await sendDataToBackend(storeData);
-      console.log(createResponse);  // print out the response from the create request
+      const costParts = styleData.cost.toString().split('.');
+      cost = costParts[0] + '.' + costParts[1].slice(0, 2);
     }
-  }; 
+  }
+
+  // Format code
+  const formattedCode = `${code.toString().padStart(3, '0')} - ${month.toString().padStart(2, '0')}${year.toString().slice(-2)}${cost.padStart(4, '0')}`;
+
+  return formattedCode;
+};
+
+
+   // Function to generate PDF
+   const generatePDF = () => {
+   
+    const portraitMode = orientation === 'portrait';
+
+    const contentData: Content[] =  [
+        {
+          columns: [
+            {
+              text: `${styleData.supplier_name}`,
+              
+              fontSize: portraitMode ? 14 : 20,
+        alignment: 'left',
+        margin: [-15,-30,0,10]
+            },
+            
+          ],
+        },
+        {
+        columns: [
+          {
+          
+        text: 
+        `${styleData.description}`,
+        fontSize: portraitMode ? 36 : 42,
+        alignment: 'center',
+        margin: [3,3,3,3]
+            
+          },
+        ],
+      },
+      {
+        columns: [
+          {
+            text: 
+        `#${styleData.style_no}`,
+        fontSize: portraitMode ? 44 : 72,
+        alignment: 'center',
+        bold: true,
+        margin: [3,3,3,3]
+            
+          },
+        ],
+      },
+        {
+          columns: [
+            {
+              text: `${styleData.color}`,
+              width: '*',
+              fontSize: portraitMode ? 16 : 20,
+        alignment: 'center',
+        margin: [3,3,3,3]
+            },
+            {
+              text: `R - ${styleData.msrp}`,
+              width: '*',
+              fontSize: portraitMode ? 16 : 20,
+        alignment: 'center',
+        margin: [3,3,3,3]
+            },
+          ],
+        },
+        {
+          columns: [
+            {
+              text: 
+          `${generateCode()}`,
+          fontSize: portraitMode ? 16 : 20,
+          alignment: 'center',
+          margin: [3,3,3,3]
+              
+            },
+          ],
+        }, // Add quantity data
+        
+        {
+          image: imageData, // Use imageData as image source
+          width: portraitMode ? 300 : 450, // smaller size for portrait
+          height: portraitMode ? 175 : 300,
+          margin: [5,10,0,5], 
+          alignment: 'center',
+        },
+         // Add overstock data
+      ];
+
+      const contentData1: Content[] =  [
+        {
+          columns: [
+            {
+              text: `${styleData.supplier_name}`,
+              
+              fontSize: portraitMode ? 14 : 20,
+        alignment: 'left',
+        margin: [-15,-30,0,10]
+            },
+            
+          ],
+        },
+        {
+        columns: [
+          {
+          
+        text: 
+        `${styleData.description}`,
+        fontSize: portraitMode ? 36 : 42,
+        alignment: 'center',
+        margin: [3,3,3,3]
+            
+          },
+        ],
+      },
+      {
+        columns: [
+          {
+            text: 
+        `#${styleData.style_no}`,
+        fontSize: portraitMode ? 44 : 72,
+        alignment: 'center',
+        bold: true,
+        margin: [3,3,3,3]
+            
+          },
+        ],
+      },
+        {
+          columns: [
+            {
+              text: `${styleData.color}`,
+              width: '*',
+              fontSize: portraitMode ? 16 : 20,
+        alignment: 'center',
+        margin: [3,3,3,3]
+            },
+            {
+              text: `R - ${styleData.msrp}`,
+              width: '*',
+              fontSize: portraitMode ? 16 : 20,
+        alignment: 'center',
+        margin: [3,3,3,3]
+            },
+          ],
+        },
+        {
+          columns: [
+            {
+              text: 
+          `${generateCode()}`,
+          fontSize: portraitMode ? 16 : 20,
+          alignment: 'center',
+          margin: [3,3,3,3]
+              
+            },
+          ],
+        }, // Add quantity data
+        
+        {
+          image: imageData, // Use imageData as image source
+          width: portraitMode ? 300 : 450, // smaller size for portrait
+          height: portraitMode ? 150 : 300,
+          margin: [5,10,0,5], 
+          alignment: 'center',
+        },
+         // Add overstock data
+      ];
+    
+      let content: Content[];
   
+      if (portraitMode) {
+        // Add a page break and duplicate the content
+        contentData.push({ text: '', marginTop: 40 });
+        content = [...contentData, ...contentData1];
+      } else {
+        content = contentData;
+      }
+    
+      const docDefinition: TDocumentDefinitions = {
+        content: content,
+        pageSize: 'LETTER',
+        pageOrientation: orientation,
+      };
+    
+      pdfMake.createPdf(docDefinition).open();
+    };
+
+
     return (
         <div>
           <Homepage setNavbarOpened={setNavbarOpened}/>
@@ -411,7 +622,6 @@ const handleInitialChange = (event: React.ChangeEvent<HTMLInputElement>, index: 
                   ))}
                   <th>Total</th>
                   <th>Initial</th>
-            <th>Push to Store</th>
                 </tr>
               </thead>
               <tbody>
@@ -456,9 +666,7 @@ const handleInitialChange = (event: React.ChangeEvent<HTMLInputElement>, index: 
                 />
 
               </td>
-              <td>
-                <Button onClick={() => handlePushToStore(storeIndex)}>Push to Store</Button>
-              </td>
+             
             </tr>
           ))}
                 {/* Render the overstock row */}
@@ -486,14 +694,34 @@ const handleInitialChange = (event: React.ChangeEvent<HTMLInputElement>, index: 
             </Grid>
             <Center style={{marginTop: "30PX"}}>
             <Group>
+              <Group>
+          <Input type="file"  onChange={handleFileChange}  />
+      <TextInput
+        
+        placeholder="Enter image URL"
+        onChange={handleImageUrlChange}
+      />
+</Group>
+<Select 
+  data={[
+    { value: 'portrait', label: 'Portrait' },
+    { value: 'landscape', label: 'Landscape' },
+  ]}
+  value={orientation}
+  onChange={handleOrientationChange}
+/>
+
+ <Button onClick={generatePDF}>Generate PDF</Button>
+
             <Button onClick={updateAllocationData}>SAVE CHANGES</Button>
             <Button onClick={updateAllocationData}>DONE</Button>
+           
             </Group>
             </Center>
           </Container>.
           </MantineProvider>
           )}
-         
+        
          </div>
          
       );

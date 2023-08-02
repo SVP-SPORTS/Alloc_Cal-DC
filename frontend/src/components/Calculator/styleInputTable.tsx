@@ -91,10 +91,29 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const handleSupplierChange = (value: string) => {
+  
+
+  const handleSupplierChange = async (value: string) => {
     setSupplierName(value);
+    
+    // Check if the supplier is not in the current list of suppliers
+    const isSupplierNew = allSuppliers.every(supplier => supplier.value !== value);
+    
+    // If the supplier is new, create it
+    if (isSupplierNew) {
+      try {
+        await axios.post('http://localhost:5000/api/supplier/add', { supplier_name: value });
+        // Add the new supplier to the state
+        setAllSuppliers(prev => [...prev, { label: value, value }]);
+      } catch (error) {
+        console.error('Error creating new supplier:', error);
+      }
+    }
+  
+    // Fetch the supplier by name, regardless of whether it's new or not
     fetchSupplierByName(value);
   };
+  
 
   const handleStyleNoChange = (event: ChangeEvent<HTMLInputElement>) => {
     setStyleNo(event.target.value);
@@ -123,7 +142,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <div>
        <Homepage setNavbarOpened={setNavbarOpened}/>
-      <Paper p="md" shadow="xs" style={{ marginBottom: '1rem', marginTop: "80px" }}>
+      <Paper p="xs" shadow="xs" style={{ marginBottom: '1rem', marginTop: "50px" }}>
        <Text align="center" size="xl" weight={500}>
           Store Allocation Calculator
         </Text> 
@@ -147,17 +166,21 @@ const Header: React.FC<HeaderProps> = ({
             
               <Col span={6}>
               <Select
-                placeholder="Select supplier"
-                label="Supplier"
-                id={supplierNameId}
-                value={supplierName}
-                data={allSuppliers}
-                searchable
-                onChange={handleSupplierChange}
-                style={{ width: '80%' }}
-                maxDropdownHeight={50}
-              />
-            
+  placeholder="Select supplier"
+  label="Supplier"
+  id={supplierNameId}
+  value={supplierName}
+  data={allSuppliers}
+  searchable
+  creatable
+  onCreate={(value) => ({ value, label: value })}
+  onChange={handleSupplierChange}
+  getCreateLabel={(query) => `+ Create ${query}`}
+  style={{ width: '80%' }}
+  maxDropdownHeight={50}
+/>
+
+    
              
               <TextInput
                 label="Style No."

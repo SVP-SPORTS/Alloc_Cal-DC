@@ -11,6 +11,8 @@ class Style extends Model {
   public cost!: number;
   public msrp!: number;
   public total_qty!: number;
+  public location!: string;
+  public first_name!: string;
 }
 
 Style.init(
@@ -48,7 +50,14 @@ Style.init(
       allowNull: false,
     },
       
-    
+    location: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    first_name: {
+      type: DataTypes.STRING,
+      allowNull: false
+    }
   },
   {
     tableName: "styles",

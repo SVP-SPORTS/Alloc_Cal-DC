@@ -1,6 +1,6 @@
 import express from 'express';
 import Supplier from '../database/SupplierData';
-import { Op } from 'sequelize'; 
+
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ router.post('/add', async (req, res) => {
     res.status(201).json(newSupplier);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create supplier' });
-  }
+  } 
 });
 
 

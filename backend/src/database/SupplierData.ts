@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../sequelize'; 
-import Style from './StyleData';
+
 
 interface SupplierAttributes {
   supplier_id: number;

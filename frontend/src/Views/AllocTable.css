@@ -41,5 +41,11 @@
 }
 
 .table-wrapper table tbody td {
-  font-size: 18px; /* setting font size of table body to x-large */
+  font-size: 18px;
+ /* setting font size of table body to x-large */
+}
+
+.table-wrapper table tbody tr {
+  width: fit-content;
+ /* setting font size of table body to x-large */
 }

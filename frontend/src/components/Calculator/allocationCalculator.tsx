@@ -1,14 +1,14 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect, ChangeEvent, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
-import { Text, Input, Grid, Table, Container, Checkbox, Flex, Center, Group, Col, Button, MantineProvider, } from '@mantine/core';
+import { Button, Center, Checkbox, Col, Container, Flex, Grid, Group, Input, MantineProvider, Table, Text, } from '@mantine/core';
 import axios from 'axios';
+import { ChangeEvent, forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import Header from './styleInputTable';
-import HomePage from '../Navigation/parentHome';
+//import HomePage from '../Navigation/parentHome';
 
 
 
-  
+
 
 
 
@@ -17,26 +17,19 @@ type SizeQuantity = {
   size: string;
   quantity: number;
 };
-interface Store {
-  id: number;
-  name: string;
-  standardQuantity: number;
-}
 type StoreData = {
   storeName: string;
   sizeQuantities: SizeQuantity[];
 };
-let tableData: StoreData[][] = [];
 
-interface AllocProps {}
+interface AllocProps { }
 
-const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> = (props, ref) => {
+const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> = (_props, ref) => {
   const [sizes, setSizes] = useState<string[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [navbarOpened, setNavbarOpened] = useState(false);
+ 
   const [tableData, setTableData] = useState<StoreData[]>([]);
   const [totalProductionQuantities, setTotalProductionQuantities] = useState<number[]>([]);
-  const [standardQuantities, setStandardQuantities] = useState<number[]>(new Array(12).fill(0));
+  const [standardQuantities, setStandardQuantities] = useState<number[]>(new Array(13).fill(0));
   const [totalProductionSum, setTotalProductionSum] = useState<number>(0);
   const [calculateClicked, setCalculateClicked] = useState(false);
   const [totalStdQty, setTotalStdQty] = useState(0);
@@ -48,14 +41,14 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   const [cost, setCost] = useState('');
   const [msrp, setMsrp] = useState('');
   const [poNo, setPoNo] = useState('');
-  
-  
+
+
 
 
 
   const storeNames = [
     'STEELES', 'WEB', 'OPM', 'VAUGHAN', 'NIAGARA', 'ALLISTON',
-    'SCARBOROUGH', 'CARTWRIGHT', 'BRAMPTON', 'PICKERING', 'YORKGATE', 'OPM-HAMILTON',
+    'SCARBOROUGH', 'CARTWRIGHT', 'BRAMPTON', 'PICKERING', 'YORKGATE', 'OPM-HAMILTON', 'SC SuperStore'
   ];
 
   const [stores, setStores] = useState<string[]>(storeNames);
@@ -73,47 +66,15 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   }, [totalProductionQuantities]);
 
 
-  const handleOverstockStoreChange = (storeName: string) => {
-    setOverstockStore(storeName);
-  };
-
-  //Save
   const onSave = async () => {
-
-    try {
-      const response = await axios.post('http://localhost:5000/api/po', {
-       poNo : poNo,
-       supplierName: supplierName
-
-      });
-      console.log(response.data);
-     
-    } catch (error) {
-      console.error('Error saving style:', error); 
-    }
-
-   
-
-
-
-    try {
-      const response = await axios.post('http://localhost:5000/api/style/create', {
-        supplierName: supplierName,
-        styleNo: styleNo,
-        description: description, 
-        color: color,
-        cost: cost, 
-        msrp: msrp,
-        
-      });
-      console.log(response.data);
-      //resetInputs();
-    } catch (error) {
-      console.error('Error saving style:', error); 
-    }
-
-    
-    const allocationData = {
+    const data = {
+      //poNo: poNo,
+      supplier_name: supplierName,
+      styleNo: styleNo,
+      description: description,
+      color: color,
+      cost: cost,
+      msrp: msrp,
       storeName: tableData.map(data => data.storeName),
       sizeQuantities: tableData.map(data => data.sizeQuantities),
       receivedQty: sizes.map((size, index) => ({
@@ -121,30 +82,31 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
         quantity: totalProductionQuantities[index],
       })),
       total: totalProductionQuantities.reduce((a, b) => a + b, 0),
-      totalAllocationPerSize: sizes.map((size, index) => calculateTotalAllocation(index)), // assuming calculateTotalAllocation(index) returns the total allocation for a size
-      overstockPerSize: sizes.map((size, index) => calculateOverstock(index)), // assuming calculateOverstock(index) returns the overstock for a size
-      style_no: styleNo,
-      supplierName: supplierName,
-      poNo: poNo,
-      initial : tableData.map(data => data.storeName),
+      totalAllocationPerSize: sizes.map((_size, index) => calculateTotalAllocation(index)),
+      overstockPerSize: sizes.map((_size, index) => calculateOverstock(index)),
+      // assuming that allocationId is available
+      initial: tableData.map(data => data.storeName),
     };
-  
+
     try {
-      const response = await axios.post('http://localhost:5000/api/allocation', allocationData);
-      console.log(response.data);
+      const response = await axios.post('http://localhost:5000/api/allocation/create', data, { withCredentials: true });
+
+      if (response.status === 200) {
+        console.log('Data saved successfully:', response.data);
+      } else {
+        console.error('Error while saving data:', response.data);
+      }
     } catch (error) {
-      console.error('Failed to save allocation to backend:', error);
+      console.error('Error while saving data:', error);
     }
-  
-  
-  
-};
-
-   
-  
+  };
 
 
- 
+
+
+
+
+
 
 
   const updateTableData = () => {
@@ -168,82 +130,220 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   };
 
   //handle Calculate
+  // Your priority stores list should be in descending order of priority.
+  const priorityStores = [
+    'STEELES', 'WEB','SC SuperStore', 'OPM', 'VAUGHAN', 'BRAMPTON',  'OPM-HAMILTON', 'NIAGARA', 'SCARBOROUGH', 'CARTWRIGHT', 'ALLISTON', 'PICKERING', 'YORKGATE'
+  ];
 
-  const allocateSizesToStores = () => {
-    const newTableData = [...tableData];
+  const preferredSizes = ['10', '10.5', '9.5','9'];
 
-    // Step 1: Calculate the total production quantity across all sizes
-    const totalProductionQuantity = totalProductionQuantities.reduce((total, qty) => total + qty, 0);
 
-    newTableData.forEach((storeData, storeIndex) => {
-      // Reset the size quantities for this store
-      storeData.sizeQuantities.forEach((sizeData) => {
+  const allocateSizesToStores = (): void => {
+    const newTableData: StoreData[] = [...tableData];
+    const totalAllocatedQty: number[] = new Array(newTableData.length).fill(0);
+    const totalProductionQuantity: number = totalProductionQuantities.reduce((total: number, qty: number) => total + qty, 0);
+    const maxPreferredSizeQuantity: number = 10;
+
+    const remainingQuantities: number[] = [...totalProductionQuantities];
+
+
+    // Create a mapping of store names to priorities
+    let storePriorities: { [storeName: string]: number } = {};
+    priorityStores.forEach((storeName, index) => {
+      storePriorities[storeName] = index;
+    });
+    //let storePriorities: { [storeName: string]: number } = {};
+    priorityStores.forEach((storeName, index) => {
+      storePriorities[storeName] = index;
+    });
+
+    // Sort the stores by their priorities. Lower priority values mean higher priority.
+    let sortedStores = newTableData.map((storeData) => ({
+      data: storeData,
+      priority: storePriorities[storeData.storeName],
+    })).sort((a, b) => a.priority - b.priority);
+
+    sortedStores.forEach(({ data: storeData }, storeIndex) => {
+      storeData.sizeQuantities.forEach((sizeData: SizeQuantity) => {
         sizeData.quantity = 0;
       });
 
-      // Step 2: Determine the proportion of this store's standard quantity to the total production quantity
-      const storeProportion = standardQuantities[storeIndex] / totalProductionQuantity;
+      const storeProportion: number = standardQuantities[storeIndex] / totalProductionQuantity;
 
-      // Calculate the total standard quantity across all stores
-      const totalStandardQuantity = standardQuantities.reduce((total, qty) => total + qty, 0);
+      storeData.sizeQuantities.forEach((sizeData: SizeQuantity, sizeIndex: number) => {
+        let sizeAllocation: number = Math.floor(totalProductionQuantities[sizeIndex] * storeProportion);
 
-      // Check if the total standard quantity is more than the total production quantity
-      if (totalStandardQuantity > totalProductionQuantity) {
-        // If it is, display an error message and terminate the function
-        alert('You are over ambitious. The total standard quantity should not exceed the total production quantity.');
-        return false;
-      }
-
-      // Step 3: Allocate this store's proportion of each size's production quantity
-      storeData.sizeQuantities.forEach((sizeData, sizeIndex) => {
-        const sizeAllocation = Math.floor(totalProductionQuantities[sizeIndex] * storeProportion);
-        sizeData.quantity += sizeAllocation;
-        //
-        // Calculate total allocation quantity for this size
-        const totalAllocationQuantity = newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[sizeIndex].quantity, 0);
-        if (totalAllocationQuantity > totalProductionQuantities[sizeIndex]) {
-          // If it is, display an error message and terminate the function
-          alert(`You are over ambitious. The total allocation quantity for size ${sizeData.size} should not exceed its total RCV Size quantity.`);
-          return;
+        if (preferredSizes.includes(sizeData.size) && sizeAllocation < maxPreferredSizeQuantity) {
+          sizeAllocation = maxPreferredSizeQuantity;
         }
+
+        if (sizeAllocation === 0 && remainingQuantities[sizeIndex] > 0) {
+          sizeAllocation = 1;
+          remainingQuantities[sizeIndex] -= 1;
+        }
+
+        // Check if the size allocation would cause the store's total allocation to exceed its standard quantity
+        if (totalAllocatedQty[storeIndex] + sizeAllocation > standardQuantities[storeIndex]) {
+          sizeAllocation = standardQuantities[storeIndex] - totalAllocatedQty[storeIndex];
+        }
+
+        sizeData.quantity += sizeAllocation;
+        totalAllocatedQty[storeIndex] += sizeAllocation;
       });
     });
 
-    const allStoresAtMax = () => {
-      return newTableData.every((storeData, index) => calculateRowTotal(index) >= standardQuantities[index]);
+    // Step 4: Redistribute quantities to minimize variance
+    const calculateVariance = (sizeIndex: number): number => {
+      // Calculate mean
+      const mean: number = newTableData.reduce((total: number, storeData: StoreData) => total + (storeData.sizeQuantities[sizeIndex]?.quantity || 0), 0) / newTableData.length;
+
+      // Calculate variance
+      const variance: number = newTableData.reduce((total: number, storeData: StoreData) => total + Math.pow((storeData.sizeQuantities[sizeIndex]?.quantity || 0) - mean, 2), 0) / newTableData.length;
+
+      return variance;
     };
 
+    // Optimize each size's quantity separately
+    for (let s = 0; s < newTableData[0].sizeQuantities.length; s++) {
+      let improvement: boolean = true;
+      while (improvement) {
+        improvement = false;
+        for (let i = 0; i < newTableData.length - 1; i++) {
+          for (let j = i + 1; j < newTableData.length; j++) {
+            // Try swapping quantities and see if it improves variance
+            const tmp: number = newTableData[i].sizeQuantities[s].quantity;
+            newTableData[i].sizeQuantities[s].quantity = newTableData[j].sizeQuantities[s].quantity;
+            newTableData[j].sizeQuantities[s].quantity = tmp;
 
-    // Step 4: Allocate any remaining quantity for each size
-    let sizeIndex = 0;
-    const allocateRemainingQuantity = () => {
-      if (sizeIndex >= totalProductionQuantities.length) {
-        // Update state
-        setTableData(newTableData);
-        return;
+            const varianceAfter: number = calculateVariance(s);
+            // Also, check if the swap would cause either store's total allocation to exceed its standard quantity
+            const iTotal = newTableData[i].sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
+            const jTotal = newTableData[j].sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
+            if (varianceAfter < calculateVariance(s) && iTotal <= standardQuantities[i] && jTotal <= standardQuantities[j]) {
+              // Improvement! Keep the swap and continue searching
+              improvement = true;
+            } else {
+              // No improvement. Swap back
+              newTableData[j].sizeQuantities[s].quantity = newTableData[i].sizeQuantities[s].quantity;
+              newTableData[i].sizeQuantities[s].quantity = tmp;
+            }
+          }
+        }
       }
-
-      let totalSizeQty = totalProductionQuantities[sizeIndex];
-      let allocatedSizeQty = newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[sizeIndex].quantity, 0);
+    }
+    // Step 5: Distribute remaining quantities
+    for (let s = 0; s < newTableData[0].sizeQuantities.length; s++) {
+      let totalSizeQty = totalProductionQuantities[s];
+      let allocatedSizeQty = newTableData.reduce((total: number, storeData: StoreData) => total + (storeData.sizeQuantities[s]?.quantity || 0), 0);
       let remainingSizeQty = totalSizeQty - allocatedSizeQty;
 
-      let storeIndex = 0;
-      while (remainingSizeQty > 0 && !allStoresAtMax()) {
-        const storeData = newTableData[storeIndex];
-        if (calculateRowTotal(storeIndex) < standardQuantities[storeIndex]) {
-          storeData.sizeQuantities[sizeIndex].quantity += 1;
+      // Sort the priority stores by their current allocation of the size
+      const priorityStoresForSize = priorityStores.slice().sort((storeNameA, storeNameB) => {
+        const storeIndexA = newTableData.findIndex(storeData => storeData.storeName === storeNameA);
+        const storeIndexB = newTableData.findIndex(storeData => storeData.storeName === storeNameB);
+
+        const sizeQtyA = newTableData[storeIndexA]?.sizeQuantities[s]?.quantity || 0;
+        const sizeQtyB = newTableData[storeIndexB]?.sizeQuantities[s]?.quantity || 0;
+
+        return sizeQtyA - sizeQtyB;  // Change this to `sizeQtyB - sizeQtyA` for descending order
+      });
+
+      priorityStoresForSize.forEach(storeName => {
+        const storeIndex = newTableData.findIndex(storeData => storeData.storeName === storeName);
+        if (storeIndex === -1) return;
+
+        const storeTotalQuantity = newTableData[storeIndex].sizeQuantities.reduce((total: number, sizeData: SizeQuantity) => total + sizeData.quantity, 0);
+
+        // Check if increasing the size's allocation would cause the store's total allocation to exceed its standard quantity
+        if (remainingSizeQty > 0 && storeTotalQuantity + 1 <= standardQuantities[storeIndex]) {
+          newTableData[storeIndex].sizeQuantities[s].quantity += 1;
           remainingSizeQty -= 1;
         }
+      });
+    }
+    
+    // Step 6: Verify and adjust quantities to match the production quantity for each size
+for (let s = 0; s < totalProductionQuantities.length; s++) {
+  let totalSizeQty = totalProductionQuantities[s];
+  let allocatedSizeQty = newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[s].quantity, 0);
 
-        storeIndex = (storeIndex + 1) % newTableData.length;
+  while (allocatedSizeQty > totalSizeQty) {
+    // Find the store with the highest allocation of this size
+    let maxQtyStoreIndex = newTableData.reduce((maxIndex, storeData, index, arr) =>
+      storeData.sizeQuantities[s].quantity > arr[maxIndex].sizeQuantities[s].quantity ? index : maxIndex,
+      0
+    );
+
+    // Decrease the quantity of the size in the store with the highest allocation
+    newTableData[maxQtyStoreIndex].sizeQuantities[s].quantity -= 1;
+
+    allocatedSizeQty -= 1;
+  }
+
+  // Reallocate the removed quantities to sizes that have not reached their total production quantities yet
+  while (allocatedSizeQty < totalSizeQty) {
+    // Find a size that has not reached its total production quantity yet
+    let availableSizeIndex = newTableData[0].sizeQuantities.findIndex((sq, index) => 
+      newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[index].quantity, 0) < totalProductionQuantities[index]
+    );
+
+    // Find the store with the lowest allocation of this size
+    let minQtyStoreIndex = newTableData.reduce((minIndex, storeData, index, arr) =>
+      storeData.sizeQuantities[availableSizeIndex].quantity < arr[minIndex].sizeQuantities[availableSizeIndex].quantity ? index : minIndex,
+      0
+    );
+
+    // Increase the quantity of the size in the store with the lowest allocation
+    newTableData[minQtyStoreIndex].sizeQuantities[availableSizeIndex].quantity += 1;
+
+    allocatedSizeQty += 1;
+  }
+}
+  // Step 7: Adjust quantities to match the standard quantity for each store
+
+    newTableData.forEach((storeData, storeIndex) => {
+      let totalStoreQty = storeData.sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
+
+      while (totalStoreQty > standardQuantities[storeIndex]) {
+        // Find the size with the largest quantity
+        let maxQtyIndex = storeData.sizeQuantities.reduce((maxIndex, sq, index, arr) =>
+          sq.quantity > arr[maxIndex].quantity ? index : maxIndex,
+          0
+        );
+
+        // Decrease the quantity of the size with the largest quantity
+        storeData.sizeQuantities[maxQtyIndex].quantity -= 1;
+
+        totalStoreQty -= 1;
       }
 
-      sizeIndex += 1;
-      setTimeout(allocateRemainingQuantity, 0); // Schedule the next chunk
-    };
-    allocateRemainingQuantity();
+      while (totalStoreQty < standardQuantities[storeIndex]) {
+        // Find the size with the smallest quantity
+        let minQtyIndex = storeData.sizeQuantities.reduce((minIndex, sq, index, arr) =>
+          sq.quantity < arr[minIndex].quantity ? index : minIndex,
+          0
+        );
 
+        // Increase the quantity of the size with the smallest quantity
+        storeData.sizeQuantities[minQtyIndex].quantity += 1;
+
+        totalStoreQty += 1;
+      }
+    });
+
+
+    // Update state
+    setTableData(newTableData);
   };
+
+
+
+
+
+
+
+
+
 
   // Use useEffect to recalculate allocations when needed
   useEffect(() => {
@@ -300,7 +400,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
           sizeQuantities: sizes.map((size) => {
             return {
               size: size,
-              quantity: 0 , 
+              quantity: 0,
             };
           }),
         };
@@ -339,7 +439,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
           sizeQuantities: sizes.map((size) => {
             return {
               size: size,
-              quantity: 0, 
+              quantity: 0,
             };
           }),
 
@@ -409,7 +509,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   useEffect(() => {
     const newTotalStdQty = calculateTotalStdQtySum();
     setTotalStdQty(newTotalStdQty);
-   
+
   }, [standardQuantities, tableData]);
 
 
@@ -418,7 +518,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   };
 
   const calculateTotalSizeQuantitiesSum = (): number => {
-    return tableData.reduce((total, rowData, rowIndex) => total + calculateRowTotal(rowIndex), 0);
+    return tableData.reduce((total, _rowData, rowIndex) => total + calculateRowTotal(rowIndex), 0);
   };
 
 
@@ -429,18 +529,18 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
     return isNaN(result) ? 0 : result;
   };
 
- 
+
   const reset = () => {
     const confirmReset = window.confirm("Do you want to save before resetting?");
 
-  if (confirmReset) {
-    onSave();
-  }
-    
+    if (confirmReset) {
+      onSave();
+    }
+
     setSizes([]);
     setTableData([]);
     setTotalProductionQuantities([]);
-    setStandardQuantities(new Array(12).fill(0));
+    setStandardQuantities(new Array(13).fill(0));
     setTotalProductionSum(0);
     setCalculateClicked(false);
     setTotalStdQty(0);
@@ -458,20 +558,20 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   useImperativeHandle(ref, () => ({
     reset
   }));
-  
- 
- 
+
+
+
 
 
   return (
-    <div >
-     
-       <Header 
-       poNo={poNo}
-       setPoNo={setPoNo}
-       supplierName={supplierName}
-       setSupplierName={setSupplierName}
-         styleNo={styleNo}
+    < >
+
+      <Header
+        poNo={poNo}
+        setPoNo={setPoNo}
+        supplierName={supplierName}
+        setSupplierName={setSupplierName}
+        styleNo={styleNo}
         setStyleNo={setStyleNo}
         description={description}
         setDescription={setDescription}
@@ -481,11 +581,11 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
         setCost={setCost}
         msrp={msrp}
         setMsrp={setMsrp}
-       
+
         onSave={onSave}  // pass onSave as prop
       />
       <Container id='no-print'>
-        <Grid gutter="lg" justify="center">
+        <Grid gutter="md" justify="center" >
 
           <Col span={8}>
 
@@ -524,7 +624,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
 
 
 
-                  {storeNames.map((storeName, index) => (
+                  {storeNames.map((storeName) => (
                     <div key={storeName}>
                       <Checkbox
                         label={storeName}
@@ -543,151 +643,150 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
         </Grid>
       </Container>
       <MantineProvider
-              theme={{
-                components: {
-                  Container: {
-                    defaultProps: {
-                      sizes: {
-                        xs: 540,
-                        sm: 720,
-                        md: 960,
-                        lg: 1140,
-                        xl: 1320,
-                      },
-                    },
-                  },
+        theme={{
+          components: {
+            Container: {
+              defaultProps: {
+                sizes: {
+                  xs: 540,
+                  sm: 720,
+                  md: 960,
+                  lg: 1140,
+                  xl: 1320,
                 },
-              }}
-            >
-             <Container style={{marginTop: "30px"}} size="xl">
-   
-        <Grid>
-          <Table id="table-to-print-1" className="table">
-            <thead id='table-header'>
-              <tr>
-                <th >Store</th>
-                {sizes.map((size) => (
-                  <th key={size}>{size}</th>
-                ))}
-                <th>Total</th>
-                <th> STD QTY</th>
-              </tr>
-            </thead>
-            <tbody >
-              <tr>
-                <td>RCV QTY</td>
-                {sizes.map((size, index) => (
-                  <td key={`total-production-quantity-${index}`}>
-                    <Input
-                      type="number"
-                      value={totalProductionQuantities[index] || 0}
-                      onChange={(e) => handleTotalProductionQuantityChange(e, index)}
-                      style={{width:"100%"}}
-                    />
-                  </td>
-                ))}
-                <td>
-                  <Input type="number" value={totalProductionSum} readOnly  style={{width:"100%"}}/>
-                </td>
-                <td />
-              </tr>
-              {tableData.map((row, rowIndex) => (
-                <tr key={row.storeName}>
-                  <td>{row.storeName}</td>
-                  {row.sizeQuantities.map((sizeData, sizeIndex) => (
-                    
-                    <td key={sizeData.size}>
+              },
+            },
+          },
+        }}
+      >
+        <Container style={{ marginTop: "20px" }} size="xl">
+
+          <Grid>
+            <Table id="table-to-print-1" className="table">
+              <thead id='table-header'>
+                <tr>
+                  <th >Store</th>
+                  {sizes.map((size) => (
+                    <th key={size}>{size}</th>
+                  ))}
+                  <th>Total</th>
+                  <th> STD QTY</th>
+                </tr>
+              </thead>
+              <tbody >
+                <tr>
+                  <td>RCV QTY</td>
+                  {sizes.map((_size, index) => (
+                    <td key={`total-production-quantity-${index}`}>
                       <Input
                         type="number"
-                        value={sizeData.quantity}
-                        onChange={(e) =>
-                          handleQuantityChange(e, rowIndex, sizeIndex)
-                        }
-                        style={{width:"100%"}}
+                        value={totalProductionQuantities[index] || 0}
+                        onChange={(e) => handleTotalProductionQuantityChange(e, index)}
+                        style={{ width: "100%" }}
                       />
                     </td>
                   ))}
                   <td>
-                    <Input
-                      type="number"
-                      value={calculateRowTotal(rowIndex)}
-                      readOnly
-                      style={{width:"100%"}}
-                    />
+                    <Input type="number" value={totalProductionSum} readOnly style={{ width: "100%" }} />
                   </td>
-                  <td>
-                    <Input
-                      type="number"
-                      value={standardQuantities[rowIndex]}
-                      onChange={(e) => handleStandardQuantityChange(e, rowIndex)}
-                      placeholder="Enter standard quantity"
-                      style={{width:"100%"}}
-                    />
-                  </td>
-                  
+                  <td />
                 </tr>
-              ))}
-              <tr>
-                <td>Total allocation</td>
-                {sizes.map((_, index) => (
-                  <td key={`total-allocation-${index}`}>
-                    {calculateTotalAllocation(index)}
-                  </td>
+                {tableData.map((row, rowIndex) => (
+                  <tr key={row.storeName}>
+                    <td>{row.storeName}</td>
+                    {row.sizeQuantities.map((sizeData, sizeIndex) => (
+
+                      <td key={sizeData.size}>
+                        <Input
+                          type="number"
+                          value={sizeData.quantity}
+                          onChange={(e) =>
+                            handleQuantityChange(e, rowIndex, sizeIndex)
+                          }
+                          style={{ width: "100%" }}
+                        />
+                      </td>
+                    ))}
+                    <td>
+                      <Input
+                        type="number"
+                        value={calculateRowTotal(rowIndex)}
+                        readOnly
+                        style={{ width: "100%" }}
+                      />
+                    </td>
+                    <td>
+                      <Input
+                        type="number"
+                        value={standardQuantities[rowIndex]}
+                        onChange={(e) => handleStandardQuantityChange(e, rowIndex)}
+                        placeholder="Enter standard quantity"
+                        style={{ width: "100%" }}
+                      />
+                    </td>
+
+                  </tr>
                 ))}
-                <td>{calculateTotalSizeQuantitiesSum()}</td>
-                <td>{calculateTotalStdQtySum()}</td>
-              </tr>
-              <tr>
-                <td>Overstock</td>
-                {sizes.map((_, index) => (
-                  <td key={`overstock-${index}`}>
-                    {calculateOverstock(index)}
+                <tr>
+                  <td>Total allocation</td>
+                  {sizes.map((_, index) => (
+                    <td key={`total-allocation-${index}`}>
+                      {calculateTotalAllocation(index)}
+                    </td>
+                  ))}
+                  <td>{calculateTotalSizeQuantitiesSum()}</td>
+                  <td>{calculateTotalStdQtySum()}</td>
+                </tr>
+                <tr>
+                  <td>Overstock</td>
+                  {sizes.map((_, index) => (
+                    <td key={`overstock-${index}`}>
+                      {calculateOverstock(index)}
+                    </td>
+
+                  ))}
+                  <td>
+                    <Center maw={500} h={30} mx="auto">
+                      {Math.max(totalProductionSum - calculateTotalSizeQuantitiesSum(), 0)}
+                    </Center>
                   </td>
 
-                ))}
-                <td>
-                  <Center maw={500} h={30} mx="auto">
-                    {Math.max(totalProductionSum - calculateTotalSizeQuantitiesSum(), 0)}
-                  </Center>
-                </td>
 
 
-
-              </tr>
-            </tbody>
-          </Table>
-        </Grid>
-      </Container>
+                </tr>
+              </tbody>
+            </Table>
+          </Grid>
+        </Container>
       </MantineProvider>
       <Container>
         <Grid>
 
         </Grid>
       </Container>
-      
-      <Center style={{marginTop: "25px", marginBottom:"10px"}} >
-      <Group>
-          
-            <Button onClick={handleCalculateClick}>Calculate</Button>
-            <Button onClick={() => {
-              const newTableData = allocateOverstockToStore(tableData, 'STEELES');
-              setTableData(newTableData);
-              }}>
-              Send Overstock to STEELES
-            </Button>
 
-            <Button onClick={reset}>Reset</Button>
-            <Button onClick={onSave}>Save</Button>
+      <Center style={{ marginTop: "25px", marginBottom: "10px" }} >
+        <Group>
 
-         
-      </Group>
-        
+          <Button onClick={handleCalculateClick}>Calculate</Button>
+          <Button onClick={() => {
+            const newTableData = allocateOverstockToStore(tableData, 'STEELES');
+            setTableData(newTableData);
+          }}>
+            Send Overstock to STEELES
+          </Button>
+
+          <Button onClick={reset}>Reset</Button>
+          <Button onClick={onSave}>Save</Button>
+
+
+        </Group>
+
       </Center>
 
-    </div>
+    </>
   );
 };
 
 export default forwardRef(Alloc);
 
-  
