@@ -48,8 +48,8 @@ async function generatePoNo(transaction: Transaction) {
   return poNo; 
 }
 
-router.post('/create', isAuthenticated, checkScope('Admin' && 'SuperAdmin'), async (req: Request, res: Response, next: NextFunction) => {
-  const { supplier_name, styleNo, description, color, cost, msrp, storeName, sizeQuantities,showOnWeb, receivedQty, total, totalAllocationPerSize, overstockPerSize, initial } = req.body;
+router.post('/create', isAuthenticated, checkScope('Admin'), async (req: Request, res: Response, next: NextFunction) => {
+  const { supplier_name, styleNo, description, color, cost, msrp, storeName, sizeQuantities,showOnWeb, receivedQty, total,status, totalAllocationPerSize, overstockPerSize, initial } = req.body;
   const { first_name, location } = req.user as IUserSessionInfo;
 
   const transaction = await sequelize.transaction();
@@ -76,6 +76,7 @@ router.post('/create', isAuthenticated, checkScope('Admin' && 'SuperAdmin'), asy
         description,
         color,
         cost,
+        receivedQty,
         msrp,
         first_name,
         location,
@@ -93,6 +94,7 @@ router.post('/create', isAuthenticated, checkScope('Admin' && 'SuperAdmin'), asy
         sizeQuantities,
         receivedQty,
         total,
+        status,
         totalAllocationPerSize,
         overstockPerSize,
         style_no: styleNo,
@@ -125,76 +127,60 @@ router.post('/create', isAuthenticated, checkScope('Admin' && 'SuperAdmin'), asy
 
 //SHOW ON WEB
 
-router.get('/get/:storeName?/:styleNo?', async (req: Request, res: Response) => {
-  const { storeName, styleNo } = req.params;
-  const { location } = req.user as IUserSessionInfo;
+router.get('/get/:storeName',isAuthenticated,checkScope('Admin'), async (req: Request, res: Response) => {
+  const { storeName } = req.params; 
+// Get the user's location from the session
+const { location } = req.user as IUserSessionInfo;
 
-  try {
-    if (storeName && styleNo) {
-      // If both storeName and styleNo are provided, fetch allocations
-      const whereCondition: any = {
-        showOnWeb: true,
-        location,
-        storeName: {
-          [Op.contains]: [storeName],
-        },
-      };
+  try { 
+    // Define the where condition for the query based on the storeName and location
+   
+    const whereCondition: any = {
+      showOnWeb: true,
+      location,
+      storeName: {
+        [Op.contains]: [storeName],
+      },
+    };
   
-      whereCondition['$styles.style_no$'] = styleNo;
 
-      const allocations = await Allocation.findAll({
-        where: whereCondition,
-        include: [
-          {
-            model: PurchaseOrder,
-            as: 'PurchaseOrders',
-            attributes: ['po_no'],
-          },
-          {
-            model: Style,
-            as: 'styles',
-            required: true,
-            
-            attributes: ['style_no', 'description', 'color', 'cost', 'msrp'],
-          },
-          {
-            model: Supplier,
-            as: 'suppliers',
-            attributes: ['supplier_name'],
-          },
-        ],
-      });
-
-      // Transform sequelize instances to plain objects
-      const plainAllocations = allocations.map((allocation) => allocation.toJSON());
-
-      // Adjust the allocations to only include sizeQuantities for the specified store
-      const adjustedAllocations = plainAllocations.map((allocation: any) => {
-        const storeIndex = allocation.storeName.indexOf(storeName);
-        const sizeQuantities = allocation.sizeQuantities[storeIndex];
-
-        // Return a new allocation object with adjusted sizeQuantities
-        return { ...allocation, sizeQuantities };
-      });
-
-      res.json(adjustedAllocations);
-    } else {
-      // If only storeName or no parameters are provided, fetch styles
-      const styles = await Allocation.findAll({
-        where: {
-          showOnWeb: true,
+    // Fetch allocations for the given store
+    const allocations = await Allocation.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: PurchaseOrder,
+          as: 'PurchaseOrders',
+          attributes: ['po_no'],
         },
-        attributes: ['style_no'],
-      });
+        {
+          model: Style,
+          as: 'styles',
+          required: true,
+          attributes: ['style_no', 'description', 'color', 'cost', 'msrp'],
+        },
+        {
+          model: Supplier,
+          as: 'suppliers',
+          attributes: ['supplier_name'],
+        },
+      ],
+    });  
 
-      // Transform sequelize instances to plain objects
-      const plainStyles = styles.map((style) => style.toJSON());
-    
-      // Extract style numbers
-      const styleNos = plainStyles.map((style: any) => style.style_no);
-    
-      res.json(styleNos);
-    }
+    // Transform sequelize instances to plain objects
+    const plainAllocations = allocations.map((allocation) => allocation.toJSON());
+
+    // Adjust the allocations to only include sizeQuantities for the specified store
+    const adjustedAllocations = plainAllocations.map((allocation: any) => {
+      const storeIndex = allocation.storeName.indexOf(storeName);
+      const sizeQuantities = allocation.sizeQuantities[storeIndex];
+      const initial = allocation.initial[storeIndex];
+
+      // Return a new allocation object with adjusted sizeQuantities
+      return { ...allocation, sizeQuantities, initial };
+    });
+ 
+    res.json(adjustedAllocations);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'An error occurred while fetching data.' });
@@ -204,7 +190,7 @@ router.get('/get/:storeName?/:styleNo?', async (req: Request, res: Response) => 
 
 
 // Read allocation data by style_no and poNo
-router.get('/style_no/:style_no/poNo/:poNo',isAuthenticated,checkScope('User' && 'Admin' && 'SuperAdmin'), async (req: Request, res: Response) => {
+router.get('/style_no/:style_no/poNo/:poNo',isAuthenticated,checkScope('Admin'), async (req: Request, res: Response) => {
   try {
     // Get the user's location from the session
     const { location } = req.user as IUserSessionInfo;
@@ -236,7 +222,61 @@ router.get('/style_no/:style_no/poNo/:poNo',isAuthenticated,checkScope('User' &&
 
 
 
-router.put('/update/:allocation_id', isAuthenticated,checkScope('User' && 'Admin' && 'SuperAdmin'),async (req: Request, res: Response) => {
+router.put('/update/:allocation_id', isAuthenticated,checkScope( 'Admin'),async (req: Request, res: Response) => {
+  const { storeName, sizeQuantities, receivedQty, total,totalAllocationPerSize, overstockPerSize,status, style_no, supplierName, poNo, initial } = req.body;
+
+  const { location } = req.user as IUserSessionInfo;
+
+  // Check if an allocation with the given allocationId exists
+  let allocationData = await Allocation.findOne({ where: { allocation_id: req.params.allocation_id } });
+
+  if (!allocationData) { 
+    // If allocation does not exist, return error
+    return res.status(404).json({ error: 'Allocation not found' });
+  } 
+
+  // Determine the storeIndex based on the storeName
+  const storeIndex = allocationData.storeName.indexOf(storeName);
+
+ // Update the initial and status values at the specified storeIndex
+ if (storeIndex !== -1 && initial && typeof status === 'boolean') {
+  // Make copies of the existing initial and status values
+  const updatedInitial = [...allocationData.initial];
+  const updatedStatus = [...allocationData.status];
+
+  // Update the values at the specified storeIndex
+  updatedInitial[storeIndex] = initial;
+  updatedStatus[storeIndex] = status;
+
+
+  // Update allocation
+  await Allocation.update({
+    
+    sizeQuantities: sizeQuantities,
+    receivedQty: receivedQty,
+    total: total,
+    totalAllocationPerSize: totalAllocationPerSize,
+    overstockPerSize: overstockPerSize,
+    style_no: style_no,
+    supplierName: supplierName,
+    poNo: poNo,
+    initial: updatedInitial, 
+    status: updatedStatus,
+    
+  }, {
+    where: { allocation_id: req.params.allocation_id }
+  });
+
+  const updatedAllocationData = await Allocation.findOne({ where: { allocation_id: req.params.allocation_id, location } });
+  res.status(200).json(updatedAllocationData);
+}
+else {
+  // Handle error if storeIndex is not found or initial value is not provided
+  res.status(400).json({ error: 'Invalid store name or initial value' });
+}
+});
+////FOR LEADER
+router.put('/updated/:allocation_id', isAuthenticated,checkScope('Admin'),async (req: Request, res: Response) => {
   const { storeName, sizeQuantities, receivedQty, total,totalAllocationPerSize, overstockPerSize, style_no, supplierName, poNo, initial } = req.body;
 
   const { location } = req.user as IUserSessionInfo;
@@ -261,7 +301,7 @@ router.put('/update/:allocation_id', isAuthenticated,checkScope('User' && 'Admin
     supplierName: supplierName,
     poNo: poNo,
     initial: initial, 
-    showOnWeb: false
+    showOnWeb: true
     
   }, {
     where: { allocation_id: req.params.allocation_id }
@@ -270,7 +310,6 @@ router.put('/update/:allocation_id', isAuthenticated,checkScope('User' && 'Admin
   const updatedAllocationData = await Allocation.findOne({ where: { allocation_id: req.params.allocation_id, location } });
   res.status(200).json(updatedAllocationData);
 });
- 
  
 // Update (PATCH)
 router.patch('/:allocation_id',isAuthenticated,checkScope( 'SuperAdmin'), async (req, res) => {

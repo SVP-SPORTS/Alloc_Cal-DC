@@ -10,9 +10,26 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
 
 export const checkScope = (scope: 'User' | 'Admin' | 'SuperAdmin') => (req: Request, res: Response, next: NextFunction) => {
   const user = req.user as IUserSessionInfo;
+
+  // If the required scope is Admin, allow both Admin and SuperAdmin
+  if (scope === 'Admin' && (user.scope === 'Admin' || user.scope === 'SuperAdmin')) {
+    return next();
+  }
+
+  // If the required scope is User, allow both User and SuperAdmin
+  if (scope === 'User' && (user.scope === 'User' || user.scope === 'SuperAdmin')) {
+    return next();
+  }
+
+  // If the required scope is User, allow both User and SuperAdmin
+  if (scope === 'User' && (user.scope === 'User' || user.scope === 'Admin')) {
+    return next();
+  }
+
+  // If the required scope is exactly matched, allow access
   if (user.scope === scope) {
     return next();
   }
+
   return res.status(403).json({ message: `User is not authorized for ${scope} scope` });
 };
- 

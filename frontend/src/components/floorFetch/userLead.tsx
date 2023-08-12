@@ -9,7 +9,7 @@ import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
-type OrientationType = 'portrait' | 'landscape';
+
 
 const AllocationComponent: React.FC = () => {
     const [allocationData, setAllocationData] = useState<any>(null);
@@ -133,7 +133,7 @@ const updateAllocationData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.put(`http://localhost:5000/api/allocation/update/${allocationData.allocation_id}`, {
+      const response = await axios.put(`http://localhost:5000/api/allocation/updated/${allocationData.allocation_id}`, {
         storeName: allocationData.storeName,
         sizeQuantities: allocationData.sizeQuantities,
         receivedQty: allocationData.receivedQty,
@@ -144,15 +144,15 @@ const updateAllocationData = async () => {
         supplierName: allocationData.supplierName,
         poNo: allocationData.poNo,
         initial: allocationData.initial
-      });
-      setAllocationData(response.data);
+      }, {withCredentials: true});
+      setAllocationData(response.data); 
       setIsLoading(false);
     } catch (error) {
       console.error(error);
       setError('An error occurred while updating the allocation data.');
       setIsLoading(false);
     }
-
+    alert('Allocation Data Updated successfully');
   };
   
   // Function to update style data
@@ -165,7 +165,7 @@ const updateAllocationData = async () => {
         color: styleData.color,
         cost: styleData.cost,
         msrp: styleData.msrp
-      });
+      },{withCredentials: true});
       setStyleData(response.data);
       setIsLoading(false);
     } catch (error) {
@@ -173,7 +173,7 @@ const updateAllocationData = async () => {
       setError('An error occurred while updating the style data.');
       setIsLoading(false);
     }
-  
+    alert('Allocation Data Updated successfully');
   
   };
     
@@ -713,12 +713,11 @@ const generateCode = (): string => {
 
  <Button onClick={generatePDF}>Generate PDF</Button>
 
-            <Button onClick={updateAllocationData}>SAVE CHANGES</Button>
-            <Button onClick={updateAllocationData}>DONE</Button>
-           
+            <Button onClick={updateAllocationData}>SAVE CHANGES</Button>   
+            <Button onClick={updateAllocationData}>Push to Store</Button>          
             </Group>
             </Center>
-          </Container>.
+          </Container>
           </MantineProvider>
           )}
         

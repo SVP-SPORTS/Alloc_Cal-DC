@@ -2,7 +2,7 @@ import {  Table, Paper, Text, Button, Col, Grid, Group, Input, Modal, TextInput,
 import React, { useEffect, useState } from 'react';
 
 import "./AllocTable.css"
-import axios from 'axios';
+
 import Homepage from '../components/Navigation/parentHome';
 import { createUseStyles } from 'react-jss';
 import {  IconFilter, IconFilterX } from '@tabler/icons-react';
@@ -27,7 +27,7 @@ interface StyleData {
   color: string;
   cost: number;
   msrp: number;
-  total_qty: number;
+  total_qty: number; 
   location: string;
   first_name: string;
 }
@@ -38,6 +38,7 @@ interface AllocationData {
   style_no: string;
   supplierName: string;
   poNo: string;
+  status: boolean[];
   skuNumbers: string[];
   sizeQuantities: SizeQuantity[][];
   styles: StyleData;
@@ -75,7 +76,7 @@ const AllocTable: React.FC = () => {
   const [filter, setFilter] = useState(initialFilterState);
 
   const [allocations, setAllocations] = useState<AllocationData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+ 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [navbarOpened, setNavbarOpened] = useState(false);
 
@@ -229,12 +230,20 @@ const AllocTable: React.FC = () => {
             Quantity
           </Text>
             </th>
-          <th >
+          <th>
           <Text 
                   ta="center"
                   fz="lg"
                   fw={600}>
             Total
+          </Text>
+            </th>
+            <th>
+          <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+           Status
           </Text>
             </th>
         </tr>
@@ -268,6 +277,7 @@ const AllocTable: React.FC = () => {
           <td>{sq.size}</td>
           <td>{sq.quantity}</td>
           <td>{j === 0 ? total : ""}</td> {/* display total only on the first row */}
+          <td>{j === 0 ? (allocation.status[i] ? "Done" : "NO") : ""}</td>
         </tr>
       ));
     })

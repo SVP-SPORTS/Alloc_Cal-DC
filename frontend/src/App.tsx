@@ -67,7 +67,7 @@ function App() {
 	  
 	  <Route path="/allocCal" element={<PrivateRoute page={<AllocationTables />} />} />
       <Route path="/floorUser" element={<PrivateRoute page={<AllocationComponent />} />} />
-      <Route path="/storedata" element={<AllocationComponent1 />} />
+      <Route path="/storeData/:storeName" element={<PrivateRoute page={<AllocationComponent1 />} />} />
       <Route path="/allocData" element={<PrivateRoute page={<AllocTable />} />}/>
       <Route path="/styleData" element={<PrivateRoute page={<StylesTable />} />}/>
       <Route path="/styleqty" element={<PrivateRoute page={<StyleQuantitiesTable />} />}/>

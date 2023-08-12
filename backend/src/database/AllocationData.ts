@@ -22,6 +22,7 @@ class Allocation extends Model {
   public skuNumbers! : any[];
   public first_name!: string;
   public showOnWeb! : boolean;
+  public status!: boolean[];
 }
 
 Allocation.init({
@@ -65,7 +66,7 @@ Allocation.init({
       model: Style,
       key: "style_no"
     },
-    onUpdate:"CASECADE"
+    onUpdate:"CASCADE"
   },
   initial: {
     type : DataTypes.JSONB,
@@ -86,13 +87,18 @@ Allocation.init({
       model: PurchaseOrder,
       key: "po_no"
     },
-    onUpdate:"CASECADE"
+    onUpdate:"CASCADE"
   },
-  // Add in your allocation model fields
+ 
 showOnWeb: {
   type: DataTypes.BOOLEAN,
   allowNull: false,
-  defaultValue: true
+  defaultValue: false
+},
+status: {
+  type: DataTypes.JSONB,
+  allowNull: false,
+   
 },
   location: {
     type: DataTypes.STRING,

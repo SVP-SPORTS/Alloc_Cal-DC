@@ -1,11 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Button, Center, Checkbox, Col, Container, Flex, Grid, Group, Input, MantineProvider, Table, Text, } from '@mantine/core';
+import { Button, Center, Checkbox, Col, Container, Flex, Grid, Group, Input, MantineProvider, Modal, Popover, Table, Text } from '@mantine/core';
 import axios from 'axios';
 import { ChangeEvent, forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import Header from './styleInputTable';
-//import HomePage from '../Navigation/parentHome';
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+import { TDocumentDefinitions } from 'pdfmake/interfaces';
 
+
+
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 
 
@@ -41,8 +46,11 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   const [cost, setCost] = useState('');
   const [msrp, setMsrp] = useState('');
   const [poNo, setPoNo] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
 
-
+  
 
 
 
@@ -54,6 +62,143 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   const [stores, setStores] = useState<string[]>(storeNames);
   const [allChecked, setAllChecked] = useState<boolean>(true);
 
+
+  const downloadPDF = () => {
+    const body: any[]= [];
+
+    // Number of sizes plus two additional columns for 'Store' and 'Total'
+
+    // Add headers to the table
+    const header = ['Store', ...sizes, 'Total', 'INITIALS'];
+    body.push(header);
+  
+
+    const totalProductionQty = ['RCV QTY', ...sizes.map((_, index) => totalProductionQuantities[index]), totalProductionSum,  ''];
+    body.push(totalProductionQty);
+
+
+    // Add your table data here, looping through tableData, for example
+    tableData.forEach((row,index:number) => {
+      const rowData = [
+        row.storeName,
+        ...row.sizeQuantities.map(sq => sq.quantity),
+        calculateRowTotal(index),
+        ''
+      ];
+      body.push(rowData);
+    });
+   
+    // Add total allocation row
+  const totalAllocationRow = ['Total Allocation', ...sizes.map((_, index) => calculateTotalAllocation(index)),calculateTotalSizeQuantitiesSum(), ''];
+  body.push(totalAllocationRow);
+
+  // Add overstock row
+  const overstockRow = ['Overstock', ...sizes.map((_, index) => calculateOverstock(index)),  Math.max(totalProductionSum - calculateTotalSizeQuantitiesSum()), ''];
+  body.push(overstockRow);
+
+ 
+   
+    // Define PDF content
+    const docDefinition: TDocumentDefinitions = {
+      pageSize: 'LETTER',
+      pageOrientation: 'landscape',
+      content: [
+  {
+    stack: [
+      {
+        text: 'SVP SPORTS - DISTRIBUTION CENTER', fontSize: 24,
+      bold: true,
+      alignment: 'center',
+      margin: [0, 0, 0, 10]
+    },
+    { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line
+      {
+        columns: [
+          
+          { text: `Supplier: ${supplierName}`, style: 'header' },
+          { text: `StyleNo: ${styleNo}`, style: 'header' },
+         
+        ],
+        // Optional space between columns
+        columnGap: 10,
+      },
+      { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line
+      { text: `Description: ${description}`, style: 'subheader' },
+      { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line
+      {
+        columns: [
+          { text: `Color: ${color}`, style: 'subheader' },
+          { text: `Cost: ${cost}`, style: 'subheader' },
+          { text: `MSRP: ${msrp}`, style: 'subheader' },
+        ],
+        // Optional space between columns
+        columnGap: 5,
+      },
+      { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line
+    ],
+  },
+  {text: '', margin: [0,0,0,10]},
+  {
+    columns: [
+      { width: '*', text: '' }, // Empty column for centering
+      {
+        width: 'auto',
+        table: {
+          body: body,
+         
+        },
+        layout: {
+          hLineWidth: function () {
+            return 1; // Thickness of horizontal lines
+          },
+          vLineWidth: function () {
+            return 1; // Thickness of vertical lines
+          },
+          hLineColor: function () {
+            return '#d0d0d0'; // Color of horizontal lines
+          },
+          vLineColor: function () {
+            return '#d0d0d0'; // Color of vertical lines
+          },
+          paddingLeft :() => 3,
+          paddingRight: () => 6,
+          paddingTop: () => 4,
+          paddingBottom: () => 2,
+        }
+      },
+      { width: '*', text: '' } // Empty column for centering
+    ],
+    columnGap: 10
+  }
+      
+      ],
+      styles: {
+        header: {
+          fontSize: 18,
+          bold: true,
+          alignment: 'center',
+          margin: [0, 0, 0, 10]
+        },
+        subheader: {
+          fontSize: 14,
+          bold: true,
+          alignment: 'center',
+          margin: [0, 10, 0, 5]
+        },
+        subheader1: {
+          fontSize: 14,
+          bold: true,
+          alignment: 'center',
+          margin: [0, 10, 0, 35]
+        }
+      }
+    };
+   
+
+    // Create the PDF and open it in a new window
+    pdfMake.createPdf(docDefinition).open();
+  };
+  
 
   useEffect(() => {
     updateTableData();
@@ -67,6 +212,8 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
 
 
   const onSave = async () => {
+
+    const statusArray = Array(tableData.length).fill(false);
     const data = {
       //poNo: poNo,
       supplier_name: supplierName,
@@ -75,6 +222,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
       color: color,
       cost: cost,
       msrp: msrp,
+      status: statusArray,
       storeName: tableData.map(data => data.storeName),
       sizeQuantities: tableData.map(data => data.sizeQuantities),
       receivedQty: sizes.map((size, index) => ({
@@ -92,14 +240,21 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
       const response = await axios.post('http://localhost:5000/api/allocation/create', data, { withCredentials: true });
 
       if (response.status === 200) {
-        console.log('Data saved successfully:', response.data);
+        setMessage('Data saved successfully');
+        setIsError(false);
+        reset(true); // Pass true to skip save confirmation
       } else {
-        console.error('Error while saving data:', response.data);
+        setMessage('Error while saving data');
+        setIsError(true);
       }
-    } catch (error) {
-      console.error('Error while saving data:', error);
+      setModalIsOpen(true); // Open the modal
+    } catch (error: any) {
+      setMessage('Error while saving data: ' + error.message);
+      setIsError(true);
+      setModalIsOpen(true); // Open the modal
     }
-  };
+    alert('Data Saved Successfully!');
+  }; 
 
 
 
@@ -136,8 +291,6 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   ];
 
   const preferredSizes = ['10', '10.5', '9.5','9'];
-
-
   const allocateSizesToStores = (): void => {
     const newTableData: StoreData[] = [...tableData];
     const totalAllocatedQty: number[] = new Array(newTableData.length).fill(0);
@@ -147,6 +300,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
     const remainingQuantities: number[] = [...totalProductionQuantities];
 
 
+    //Step 1: Initialize
     // Create a mapping of store names to priorities
     let storePriorities: { [storeName: string]: number } = {};
     priorityStores.forEach((storeName, index) => {
@@ -165,176 +319,205 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
 
     sortedStores.forEach(({ data: storeData }, storeIndex) => {
       storeData.sizeQuantities.forEach((sizeData: SizeQuantity) => {
-        sizeData.quantity = 0;
+        sizeData.quantity = 0; // Reset to zero
       });
-
+  
       const storeProportion: number = standardQuantities[storeIndex] / totalProductionQuantity;
-
+  
       storeData.sizeQuantities.forEach((sizeData: SizeQuantity, sizeIndex: number) => {
         let sizeAllocation: number = Math.floor(totalProductionQuantities[sizeIndex] * storeProportion);
-
-        if (preferredSizes.includes(sizeData.size) && sizeAllocation < maxPreferredSizeQuantity) {
-          sizeAllocation = maxPreferredSizeQuantity;
-        }
-
+  
+        // Ensure that the size allocation is at least 1 if there's enough quantity
         if (sizeAllocation === 0 && remainingQuantities[sizeIndex] > 0) {
           sizeAllocation = 1;
           remainingQuantities[sizeIndex] -= 1;
         }
-
-        // Check if the size allocation would cause the store's total allocation to exceed its standard quantity
-        if (totalAllocatedQty[storeIndex] + sizeAllocation > standardQuantities[storeIndex]) {
-          sizeAllocation = standardQuantities[storeIndex] - totalAllocatedQty[storeIndex];
+  
+        // Check and adjust if the size allocation would cause the store's total allocation to exceed its standard quantity
+        const remainingStoreQty = standardQuantities[storeIndex] - totalAllocatedQty[storeIndex];
+        if (sizeAllocation > remainingStoreQty) {
+          sizeAllocation = remainingStoreQty;
         }
-
+  
+        // Update size allocation, ensuring it doesn't exceed the production quantity
+        sizeAllocation = Math.min(sizeAllocation, remainingQuantities[sizeIndex], totalProductionQuantities[sizeIndex]);
+  
+        // Update the remaining quantities for that size
+        remainingQuantities[sizeIndex] -= sizeAllocation;
+  
         sizeData.quantity += sizeAllocation;
         totalAllocatedQty[storeIndex] += sizeAllocation;
       });
     });
 
-    // Step 4: Redistribute quantities to minimize variance
-    const calculateVariance = (sizeIndex: number): number => {
-      // Calculate mean
-      const mean: number = newTableData.reduce((total: number, storeData: StoreData) => total + (storeData.sizeQuantities[sizeIndex]?.quantity || 0), 0) / newTableData.length;
+ // Step 2: Redistribute quantities to minimize variance
+ const calculateVariance = (sizeIndex: number): number => {
+  // Calculate mean
+  const mean: number = newTableData.reduce((total: number, storeData: StoreData) => total + (storeData.sizeQuantities[sizeIndex]?.quantity || 0), 0) / newTableData.length;
 
-      // Calculate variance
-      const variance: number = newTableData.reduce((total: number, storeData: StoreData) => total + Math.pow((storeData.sizeQuantities[sizeIndex]?.quantity || 0) - mean, 2), 0) / newTableData.length;
+  // Calculate variance
+  const variance: number = newTableData.reduce((total: number, storeData: StoreData) => total + Math.pow((storeData.sizeQuantities[sizeIndex]?.quantity || 0) - mean, 2), 0) / newTableData.length;
 
-      return variance;
-    };
+  return variance;
+};
 
-    // Optimize each size's quantity separately
-    for (let s = 0; s < newTableData[0].sizeQuantities.length; s++) {
-      let improvement: boolean = true;
-      while (improvement) {
-        improvement = false;
-        for (let i = 0; i < newTableData.length - 1; i++) {
-          for (let j = i + 1; j < newTableData.length; j++) {
-            // Try swapping quantities and see if it improves variance
-            const tmp: number = newTableData[i].sizeQuantities[s].quantity;
-            newTableData[i].sizeQuantities[s].quantity = newTableData[j].sizeQuantities[s].quantity;
-            newTableData[j].sizeQuantities[s].quantity = tmp;
+// Optimize each size's quantity separately
+for (let s = 0; s < newTableData[0].sizeQuantities.length; s++) {
+  let improvement: boolean = true;
+  while (improvement) {
+    improvement = false;
+    for (let i = 0; i < newTableData.length - 1; i++) {
+      for (let j = i + 1; j < newTableData.length; j++) {
+        // Try swapping quantities and see if it improves variance
+        const tmp: number = newTableData[i].sizeQuantities[s].quantity;
+        newTableData[i].sizeQuantities[s].quantity = newTableData[j].sizeQuantities[s].quantity;
+        newTableData[j].sizeQuantities[s].quantity = tmp;
 
-            const varianceAfter: number = calculateVariance(s);
-            // Also, check if the swap would cause either store's total allocation to exceed its standard quantity
-            const iTotal = newTableData[i].sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
-            const jTotal = newTableData[j].sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
-            if (varianceAfter < calculateVariance(s) && iTotal <= standardQuantities[i] && jTotal <= standardQuantities[j]) {
-              // Improvement! Keep the swap and continue searching
-              improvement = true;
-            } else {
-              // No improvement. Swap back
-              newTableData[j].sizeQuantities[s].quantity = newTableData[i].sizeQuantities[s].quantity;
-              newTableData[i].sizeQuantities[s].quantity = tmp;
-            }
-          }
+        const varianceAfter: number = calculateVariance(s);
+        // Also, check if the swap would cause either store's total allocation to exceed its standard quantity
+        const iTotal = newTableData[i].sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
+        const jTotal = newTableData[j].sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
+        if (varianceAfter < calculateVariance(s) && iTotal <= standardQuantities[i] && jTotal <= standardQuantities[j]) {
+          // Improvement! Keep the swap and continue searching
+          improvement = true;
+        } else {
+          // No improvement. Swap back
+          newTableData[j].sizeQuantities[s].quantity = newTableData[i].sizeQuantities[s].quantity;
+          newTableData[i].sizeQuantities[s].quantity = tmp;
         }
       }
     }
-    // Step 5: Distribute remaining quantities
-    for (let s = 0; s < newTableData[0].sizeQuantities.length; s++) {
-      let totalSizeQty = totalProductionQuantities[s];
-      let allocatedSizeQty = newTableData.reduce((total: number, storeData: StoreData) => total + (storeData.sizeQuantities[s]?.quantity || 0), 0);
-      let remainingSizeQty = totalSizeQty - allocatedSizeQty;
-
-      // Sort the priority stores by their current allocation of the size
-      const priorityStoresForSize = priorityStores.slice().sort((storeNameA, storeNameB) => {
-        const storeIndexA = newTableData.findIndex(storeData => storeData.storeName === storeNameA);
-        const storeIndexB = newTableData.findIndex(storeData => storeData.storeName === storeNameB);
-
-        const sizeQtyA = newTableData[storeIndexA]?.sizeQuantities[s]?.quantity || 0;
-        const sizeQtyB = newTableData[storeIndexB]?.sizeQuantities[s]?.quantity || 0;
-
-        return sizeQtyA - sizeQtyB;  // Change this to `sizeQtyB - sizeQtyA` for descending order
-      });
-
-      priorityStoresForSize.forEach(storeName => {
-        const storeIndex = newTableData.findIndex(storeData => storeData.storeName === storeName);
-        if (storeIndex === -1) return;
-
-        const storeTotalQuantity = newTableData[storeIndex].sizeQuantities.reduce((total: number, sizeData: SizeQuantity) => total + sizeData.quantity, 0);
-
-        // Check if increasing the size's allocation would cause the store's total allocation to exceed its standard quantity
-        if (remainingSizeQty > 0 && storeTotalQuantity + 1 <= standardQuantities[storeIndex]) {
-          newTableData[storeIndex].sizeQuantities[s].quantity += 1;
-          remainingSizeQty -= 1;
-        }
-      });
-    }
-    
-    // Step 6: Verify and adjust quantities to match the production quantity for each size
-for (let s = 0; s < totalProductionQuantities.length; s++) {
-  let totalSizeQty = totalProductionQuantities[s];
-  let allocatedSizeQty = newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[s].quantity, 0);
-
-  while (allocatedSizeQty > totalSizeQty) {
-    // Find the store with the highest allocation of this size
-    let maxQtyStoreIndex = newTableData.reduce((maxIndex, storeData, index, arr) =>
-      storeData.sizeQuantities[s].quantity > arr[maxIndex].sizeQuantities[s].quantity ? index : maxIndex,
-      0
-    );
-
-    // Decrease the quantity of the size in the store with the highest allocation
-    newTableData[maxQtyStoreIndex].sizeQuantities[s].quantity -= 1;
-
-    allocatedSizeQty -= 1;
-  }
-
-  // Reallocate the removed quantities to sizes that have not reached their total production quantities yet
-  while (allocatedSizeQty < totalSizeQty) {
-    // Find a size that has not reached its total production quantity yet
-    let availableSizeIndex = newTableData[0].sizeQuantities.findIndex((sq, index) => 
-      newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[index].quantity, 0) < totalProductionQuantities[index]
-    );
-
-    // Find the store with the lowest allocation of this size
-    let minQtyStoreIndex = newTableData.reduce((minIndex, storeData, index, arr) =>
-      storeData.sizeQuantities[availableSizeIndex].quantity < arr[minIndex].sizeQuantities[availableSizeIndex].quantity ? index : minIndex,
-      0
-    );
-
-    // Increase the quantity of the size in the store with the lowest allocation
-    newTableData[minQtyStoreIndex].sizeQuantities[availableSizeIndex].quantity += 1;
-
-    allocatedSizeQty += 1;
   }
 }
-  // Step 7: Adjust quantities to match the standard quantity for each store
 
-    newTableData.forEach((storeData, storeIndex) => {
-      let totalStoreQty = storeData.sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
+// Step 3: Distribute remaining quantities
+for (let s = 0; s < newTableData[0].sizeQuantities.length; s++) {
+  let totalSizeQty = totalProductionQuantities[s];
+  let allocatedSizeQty = newTableData.reduce((total: number, storeData: StoreData) => total + (storeData.sizeQuantities[s]?.quantity || 0), 0);
+  let remainingSizeQty = totalSizeQty - allocatedSizeQty;
 
-      while (totalStoreQty > standardQuantities[storeIndex]) {
-        // Find the size with the largest quantity
-        let maxQtyIndex = storeData.sizeQuantities.reduce((maxIndex, sq, index, arr) =>
-          sq.quantity > arr[maxIndex].quantity ? index : maxIndex,
-          0
-        );
+  // Sort the priority stores by their current allocation of the size
+  const priorityStoresForSize = priorityStores.slice().sort((storeNameA, storeNameB) => {
+    const storeIndexA = newTableData.findIndex(storeData => storeData.storeName === storeNameA);
+    const storeIndexB = newTableData.findIndex(storeData => storeData.storeName === storeNameB);
 
-        // Decrease the quantity of the size with the largest quantity
-        storeData.sizeQuantities[maxQtyIndex].quantity -= 1;
+    const sizeQtyA = newTableData[storeIndexA]?.sizeQuantities[s]?.quantity || 0;
+    const sizeQtyB = newTableData[storeIndexB]?.sizeQuantities[s]?.quantity || 0;
 
-        totalStoreQty -= 1;
-      }
+    return sizeQtyA - sizeQtyB;  // Change this to `sizeQtyB - sizeQtyA` for descending order
+  });
 
-      while (totalStoreQty < standardQuantities[storeIndex]) {
-        // Find the size with the smallest quantity
-        let minQtyIndex = storeData.sizeQuantities.reduce((minIndex, sq, index, arr) =>
-          sq.quantity < arr[minIndex].quantity ? index : minIndex,
-          0
-        );
+  priorityStoresForSize.forEach(storeName => {
+    const storeIndex = newTableData.findIndex(storeData => storeData.storeName === storeName);
+    if (storeIndex === -1) return;
 
-        // Increase the quantity of the size with the smallest quantity
-        storeData.sizeQuantities[minQtyIndex].quantity += 1;
+    const storeTotalQuantity = newTableData[storeIndex].sizeQuantities.reduce((total: number, sizeData: SizeQuantity) => total + sizeData.quantity, 0);
 
-        totalStoreQty += 1;
+    // Check if increasing the size's allocation would cause the store's total allocation to exceed its standard quantity
+    if (remainingSizeQty > 0 && storeTotalQuantity + 1 <= standardQuantities[storeIndex]) {
+      newTableData[storeIndex].sizeQuantities[s].quantity += 1;
+      remainingSizeQty -= 1;
+    }
+  });
+}
+
+  // Step 4: Verify and adjust quantities to match the production quantity for each size
+  for (let s = 0; s < totalProductionQuantities.length; s++) {
+    let totalSizeQty = totalProductionQuantities[s];
+    let allocatedSizeQty = newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[s].quantity, 0);
+  
+    while (allocatedSizeQty > totalSizeQty) {
+      // Find the store with the highest allocation of this size
+      let maxQtyStoreIndex = newTableData.reduce((maxIndex, storeData, index, arr) =>
+        storeData.sizeQuantities[s].quantity > arr[maxIndex].sizeQuantities[s].quantity ? index : maxIndex,
+        0
+      );
+  
+      // Decrease the quantity of the size in the store with the highest allocation
+      newTableData[maxQtyStoreIndex].sizeQuantities[s].quantity -= 1;
+  
+      allocatedSizeQty -= 1;
+    }
+  
+    // Reallocate the removed quantities to sizes that have not reached their total production quantities yet
+    while (allocatedSizeQty < totalSizeQty) {
+      // Find a size that has not reached its total production quantity yet
+      let availableSizeIndex = newTableData[0].sizeQuantities.findIndex((sq, index) => 
+        newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[index].quantity, 0) < totalProductionQuantities[index]
+      );
+  
+      // Find the store with the lowest allocation of this size
+      let minQtyStoreIndex = newTableData.reduce((minIndex, storeData, index, arr) =>
+        storeData.sizeQuantities[availableSizeIndex].quantity < arr[minIndex].sizeQuantities[availableSizeIndex].quantity ? index : minIndex,
+        0
+      );
+  
+      // Increase the quantity of the size in the store with the lowest allocation
+      newTableData[minQtyStoreIndex].sizeQuantities[availableSizeIndex].quantity += 1;
+  
+      allocatedSizeQty += 1;
+    }
+  }
+
+  // Step 4.1: Distribute remaining quantities across stores
+for (let s = 0; s < totalProductionQuantities.length; s++) {
+  let remainingSizeQty = totalProductionQuantities[s] - newTableData.reduce((total, storeData) => total + storeData.sizeQuantities[s].quantity, 0);
+
+  // Distribute the remaining quantities across stores based on priority
+  priorityStores.forEach(storeName => {
+    const storeIndex = newTableData.findIndex(storeData => storeData.storeName === storeName);
+    if (storeIndex === -1 || remainingSizeQty <= 0) return;
+
+    // Increase the quantity of the size in the store if possible
+    if (newTableData[storeIndex].sizeQuantities[s].quantity < totalProductionQuantities[s] && newTableData[storeIndex].sizeQuantities.reduce((total, sq) => total + sq.quantity, 0) < standardQuantities[storeIndex]) {
+      newTableData[storeIndex].sizeQuantities[s].quantity += 1;
+      remainingSizeQty -= 1;
+    }
+  });
+}
+
+
+ // Step 5: Adjust quantities to match the standard quantity for each store
+
+const overstock: number[] = totalProductionQuantities.map((totalQty, sizeIndex) => {
+  const totalAllocated = newTableData.reduce((sum, storeData) => sum + storeData.sizeQuantities[sizeIndex].quantity, 0);
+  return totalQty - totalAllocated;
+});
+
+newTableData.forEach((storeData, storeIndex) => {
+  let totalStoreQty = storeData.sizeQuantities.reduce((total, sq) => total + sq.quantity, 0);
+
+  while (totalStoreQty > standardQuantities[storeIndex]) {
+    let maxQtyIndex = -1;
+    storeData.sizeQuantities.forEach((sq, index) => {
+      if (sq.quantity > (maxQtyIndex === -1 ? -1 : storeData.sizeQuantities[maxQtyIndex].quantity) && overstock[index] < totalProductionQuantities[index]) {
+        maxQtyIndex = index;
       }
     });
 
+    if (maxQtyIndex === -1) break;
 
+    storeData.sizeQuantities[maxQtyIndex].quantity -= 1;
+    overstock[maxQtyIndex] += 1;
+
+    totalStoreQty -= 1;
+  }
+
+  while (totalStoreQty < standardQuantities[storeIndex]) {
+    let minQtyIndex = overstock.findIndex((qty, index) => qty > 0 && storeData.sizeQuantities[index].quantity < totalProductionQuantities[index]);
+
+    if (minQtyIndex === -1) break;
+
+    storeData.sizeQuantities[minQtyIndex].quantity += 1;
+    overstock[minQtyIndex] -= 1;
+
+    totalStoreQty += 1;
+  }
+});
     // Update state
     setTableData(newTableData);
   };
+
 
 
 
@@ -530,11 +713,13 @@ for (let s = 0; s < totalProductionQuantities.length; s++) {
   };
 
 
-  const reset = () => {
-    const confirmReset = window.confirm("Do you want to save before resetting?");
-
-    if (confirmReset) {
-      onSave();
+  const reset = (skipSaveConfirmation = false) => {
+    if (!skipSaveConfirmation) {
+      const confirmReset = window.confirm("Do you want to save before resetting?");
+      if (confirmReset) {
+        onSave();
+        return;
+      }
     }
 
     setSizes([]);
@@ -776,9 +961,9 @@ for (let s = 0; s < totalProductionQuantities.length; s++) {
             Send Overstock to STEELES
           </Button>
 
-          <Button onClick={reset}>Reset</Button>
+          <Button onClick={() => reset()}>Reset</Button>
           <Button onClick={onSave}>Save</Button>
-
+         <Button onClick={downloadPDF}>PRINT</Button>
 
         </Group>
 
@@ -789,4 +974,5 @@ for (let s = 0; s < totalProductionQuantities.length; s++) {
 };
 
 export default forwardRef(Alloc);
+
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Select, Text, Container, Grid, Notification, Col, Input, Center, Checkbox, TextInput } from '@mantine/core';
+import { Table,  Text, Container, Grid,  Col, Input, Center, Checkbox, TextInput, Button } from '@mantine/core';
 import Homepage from '../Navigation/parentHome';
+import { useLocation } from 'react-router-dom';
+
 
 interface SizeQuantity {
   size: string;
@@ -25,59 +27,43 @@ interface Allocation {
   poNo: string;
   style_no: string;
   supplierName: string;
+  initial : string;
   sizeQuantities: SizeQuantity[];
   styles: StyleData;
 }
 
 const AllocationComponent1: React.FC = () => {
   const [allocations, setAllocations] = useState<Allocation[]>([]);
-  const [storeName, setStoreName] = useState<string>('');
-  const [storeNames, setStoreNames] = useState<string[]>([]);
-  const [styleNo, setStyleNo] = useState<string>('');  
-  const [styleNos, setStyleNos] = useState<string[]>([]);  
-  const [error, setError] = useState<string>('');
-  const [isNotificationVisible, setIsNotificationVisible] = useState<boolean>(false);
-  const [navbarOpened, setNavbarOpened] = useState(false);
+  
+  const [, setError] = useState<string>('');
+  const [, setIsNotificationVisible] = useState<boolean>(false);
+  const [, setNavbarOpened] = useState(false);
   const [isChecked, setIsChecked] = useState<boolean[]>([]);
   const [totalQuantity, setTotalQuantity] = useState<number>(0);
 
-  useEffect(() => {
-    const fetchStoreNames = async () => {
-      const storeNames = [ 'STEELES', 'WEB', 'OPM', 'VAUGHAN', 'NIAGARA', 'ALLISTON',
-      'SCARBOROUGH', 'CARTWRIGHT', 'BRAMPTON', 'PICKERING', 'YORKGATE', 'OPM-HAMILTON', 'SC SuperStore'];
-      setStoreNames(storeNames);
-    };
-  
-    const fetchStyleNos = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/allocation/get/${storeName}`);
-        const data = await response.json();
-        console.log(data);  // Log the data to see what you're getting from the API
-        setStyleNos(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    
-    fetchStoreNames();
-    fetchStyleNos();
-  }, [storeName]);
 
+  const { pathname } = useLocation(); // Import useLocation from 'react-router-dom'
+const encodedStoreName = pathname.split('/')[2]; // Extract store from URL
+const store = decodeURIComponent(encodedStoreName); // Decode the URL-encoded store name
+ 
+   
   useEffect(() => {
     const fetchData = async () => {
-      if (storeName && styleNo) { 
+      if (store) { // Check if storeName is selected
         try {
-          const response = await fetch(`http://localhost:5000/api/allocation/get/${storeName}/${styleNo}`);
+          const response = await fetch(`http://localhost:5000/api/allocation/get/${store}`, {
+            credentials: 'include', // Include credentials
+          });
           const data: Allocation[] = await response.json();
-    
-          if (data.length > 0) { 
+  
+          if (data.length > 0) {
             let total = 0;
             for (let allocation of data) {
               for (let sizeQuantity of allocation.sizeQuantities) {
                 total += sizeQuantity.quantity;
               }
             }
-            setTotalQuantity(total);  
+            setTotalQuantity(total);
             // Handle Style data
             for (let allocation of data) {
               let style = allocation.styles; // Get the Style data
@@ -85,36 +71,73 @@ const AllocationComponent1: React.FC = () => {
               console.log(style);
             }
             setAllocations(data);
-            setIsChecked(new Array(data[0].sizeQuantities.length).fill(false)); 
-            setError(''); 
+            setIsChecked(new Array(data[0].sizeQuantities.length).fill(false));
+            setError('');
           } else {
             setAllocations([]);
-            setTotalQuantity(0); 
-            setError(`No data found for store ${storeName} and style no ${styleNo}`);
+            setTotalQuantity(0);
+            setError(`No data found for store ${store}`);
             setIsNotificationVisible(true);
           }
         } catch (err) {
           console.error(err);
-          setError(`Error fetching data for store ${storeName} and style no ${styleNo}`);
+          setError(`Error fetching data for store ${store}`);
           setIsNotificationVisible(true);
         }
       }
     };
-    
   
     fetchData();
-  }, [storeName, styleNo]);
+  }, [store]);
   
 
-  const handleChange = async (value: string) => {
-    if (isChecked.every(checked => checked)) {
-      setStoreName(value);
-      setError('');
-    } else {
-      setError('You are missing the last step. Please check all checkboxes before proceeding.');
-      setIsNotificationVisible(true);
+  const updateInitialsAndStatus = async (statusValue: boolean) => {
+    // Loop through the allocations and send updates to the server
+    for (const allocation of allocations) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/allocation/update/${allocation.allocation_id}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // Include the initial and status values in the request body
+          body: JSON.stringify({ initial: allocation.initial, storeName: store, status: statusValue })
+        });
+  
+        if (!response.ok) {
+          // Log the status code and response text for more information
+          const errorText = await response.text();
+          console.error('Failed to update initial and status for allocation ID:', allocation.allocation_id, 'Status:', response.status, 'Response:', errorText);
+        }
+      } catch (err) {
+        console.error('Error updating initial and status for allocation ID:', allocation.allocation_id, err);
+      }
     }
+    // Optionally, refresh the data or notify the user that the update was successful
+    alert('Initials and status updated successfully');
   };
+  
+
+  // Function to handle initials changes
+  const handleInitialChange = (e: React.ChangeEvent<HTMLInputElement>, allocationId: number) => {
+    // Get the new initial value from the event
+    const newInitialValue = e.target.value;
+  
+    // Update the state by finding the correct allocation by ID and updating its initial value
+    setAllocations((prevAllocations) => {
+      return prevAllocations.map((allocation) => {
+        if (allocation.allocation_id === allocationId) {
+          return {
+            ...allocation,
+            initial: newInitialValue, // Correctly update the initial value
+          };
+        }
+        return allocation;
+      });
+    });
+  };
+
 
   const handleCheckboxChange = (index: number, checked: boolean) => {
     setIsChecked(prevState => {
@@ -128,47 +151,31 @@ const AllocationComponent1: React.FC = () => {
   return (
     <div>
       <Homepage setNavbarOpened={setNavbarOpened}/>
-      <Container style={{marginTop: "70px"}}>
-        <Grid gutter="lg" justify="center" style={{marginTop: "100px"}}>
-          <Col span={4}>
-            <Text 
-              ta="center"
-              fz="xl"
-              fw={700}>
-              SELECT STORE
-            </Text>
-            <Select 
-              data={storeNames} 
-              placeholder="Select a store" 
-              onChange={(value) => value && handleChange(value)} 
-              value={storeName}
-            />
-            <Text 
-              ta="center"
-              fz="xl"
-              fw={700}>
-              SELECT STYLE NO
-            </Text>
-            <Select 
-              data={styleNos} 
-              placeholder="Select a style" 
-              searchable
-              onChange={(value) => value && setStyleNo(value)} 
-              value={styleNo}
-            />
-            {isNotificationVisible && (
-              <Notification title={error} color="red" onClose={() => setIsNotificationVisible(false)} />
-            )}
-          </Col>
-        </Grid>
-      </Container>
+     
+      <Container style={{marginTop: "110px"}}>
+     
 
           {allocations.map((allocation) =>(
             
             
-               
+           <>
               <Grid gutter="lg"   justify="center" >
-              <Col span={3}> 
+              <Col span={6}> 
+              <Text 
+              ta="center"
+              fz="xl"
+              fw={700}>
+              STYLE NO
+            </Text>
+            <TextInput
+         value={allocation.style_no}
+         mih={60}
+         readOnly
+       />
+       </Col>
+       </Grid>
+       <Grid gutter="lg"   justify="center" >
+         <Col span={3}> 
               <Text 
                   ta="center"
                   fz="xl"
@@ -239,10 +246,10 @@ const AllocationComponent1: React.FC = () => {
        />  
           </Col>
           </Grid>
-
+          </>
             ))
 }
-         
+</Container>
       <Table>
       <thead>
             <tr>
@@ -257,11 +264,12 @@ const AllocationComponent1: React.FC = () => {
             ))
           )}
               <th>Total</th>
+              <th>Initial</th>
             </tr>
           </thead>
         <tbody>
           <tr>
-        <td>{storeName}</td>
+        <td>{store}</td>
           {allocations.map((allocation) =>
             allocation.sizeQuantities.map((sizeQuantity, index) => (
               
@@ -272,6 +280,15 @@ const AllocationComponent1: React.FC = () => {
             ))
           )}
            <td><Input value={totalQuantity} readOnly style={{width:"100%"}}/></td>  {/* Show total quantity here */}
+           {allocations.map((allocation) => (
+  <td key={allocation.allocation_id}>
+    <Input
+      value={allocation.initial || ''} // Handle undefined or null values by falling back to an empty string
+      onChange={(e) => handleInitialChange(e, allocation.allocation_id)}
+      style={{ width: "100%" }}
+    />
+  </td>
+))}
           </tr>
           <tr>
               <td></td>
@@ -290,8 +307,11 @@ const AllocationComponent1: React.FC = () => {
                 </Center>
               </td>
             </tr>
-       </tbody>
+       </tbody>     
       </Table>
+      <Center style={{marginTop: "50px"}}  >
+      <Button onClick={() => updateInitialsAndStatus(true)}>DONE</Button>
+      </Center>
     </div>
   );
 };

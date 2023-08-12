@@ -18,6 +18,7 @@ import {
   Burger,
   Drawer,
   Center,
+  Menu,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { IconLogin, IconUser } from "@tabler/icons-react";
@@ -103,7 +104,21 @@ export default function Homepage({
   //const navigate = useNavigate();
   const { classes } = useStyles();
 
+  const storeNames = [ 'STEELES', 'WEB', 'OPM', 'VAUGHAN', 'NIAGARA', 'ALLISTON',
+      'SCARBOROUGH', 'CARTWRIGHT', 'BRAMPTON', 'PICKERING', 'YORKGATE', 'OPM-HAMILTON', 'SC SuperStore'];
   const isTabletOrMobile = useMediaQuery("(max-width: 1100px)");
+
+  const storeNamesMenu = (
+    <Paper px="md" shadow="xs">
+      <Menu>
+        {storeNames.map((store) => (
+          <Link key={store} to={`/storeData/${store}`}>
+            <Menu.Item>{store.toUpperCase()}</Menu.Item>
+          </Link>
+        ))}
+      </Menu>
+    </Paper>
+  );
 
   const NavButtons = (
     <>
@@ -135,12 +150,21 @@ export default function Homepage({
           >
             Floor User
           </Button>
-          <Button
-            className={classes.navButton}
-            onClick={() => navigate("/storedata")}
-          >
-            GO TO STORE
-          </Button>
+         
+      <Menu>
+      <Menu.Target>
+      <Button className={classes.navButton}>GO TO STORE</Button>
+      </Menu.Target>
+        <Menu.Dropdown>
+         
+          
+              <Menu.Item>
+              {storeNamesMenu}
+              </Menu.Item>
+           
+        
+        </Menu.Dropdown>
+      </Menu>
           <Button
             className={classes.navButton}
             onClick={() => navigate("/allocData")}

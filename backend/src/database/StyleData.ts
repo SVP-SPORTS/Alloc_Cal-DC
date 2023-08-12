@@ -13,6 +13,7 @@ class Style extends Model {
   public total_qty!: number;
   public location!: string;
   public first_name!: string;
+  public receivedQty!: any[];
 }
 
 Style.init(
@@ -26,7 +27,7 @@ Style.init(
           key: "supplier_name",
           
         },
-        onUpdate:"CASECADE"
+        onUpdate:"CASCADE"
       },
     style_no: {
       type: new DataTypes.STRING(255),
@@ -48,6 +49,10 @@ Style.init(
     msrp: {  
       type: DataTypes.DECIMAL(10, 2), 
       allowNull: false,
+    },
+    receivedQty: {
+      type: DataTypes.JSONB,
+      allowNull: false
     },
       
     location: {

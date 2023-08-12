@@ -23,6 +23,7 @@ interface StyleData {
   total_qty: number;
   location: string;
   first_name: string;
+  receivedQty: ReceivedQty[]; 
 }
 
 interface AllocationData {
@@ -218,7 +219,7 @@ const StyleQuantitiesTable: React.FC = () => {
            Total Allocation
           </Text>
             </th>
-          <th >
+          <th>
           <Text 
                   ta="center"
                   fz="lg"
@@ -226,38 +227,50 @@ const StyleQuantitiesTable: React.FC = () => {
             Overstock
           </Text>
             </th>
-                  
+            <th>
+          <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+           Discrepancy
+          </Text>
+            </th>
                 </tr>
               </thead>
               <tbody className={classes.tableCell}>
               {Array.isArray(filteredData) && filteredData
   .filter((row) => row.style_no.toLowerCase().includes(searchTerm.toLowerCase()))
   .flatMap((allocation, index) => (
-    allocation.receivedQty.map((rq, rqIndex) => (
-      <tr key={`${index}-${rqIndex}`} className={classes.tableCell}>
-        <td className={classes.tableCell}>{allocation.skuNumbers[rqIndex]}</td>
-        <td className={classes.tableCell}>{rqIndex === 0 ? allocation.style_no : ''}</td>
-         {/* Here you can access the style properties */}
-         <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.description : ''}</td>
-        <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.color : ''}</td>
-        <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.cost : ''}</td>
-        <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.msrp : ''}</td>
+    allocation.receivedQty.map((rq, rqIndex) => {
+      // Assuming that allocation.styles.total_qty is the actual received quantity from the Style table
+      const actualReceivedQty = allocation.styles && allocation.styles.receivedQty ? allocation.styles.receivedQty[rqIndex].quantity : 0;
 
-        <td className={classes.tableCell}>{rqIndex === 0 ? allocation.supplierName : ''}</td>
-        <td className={classes.tableCell} >{rqIndex === 0 ? allocation.poNo : ''}</td>
-        <td className={classes.tableCell}>{rqIndex === 0 ? allocation.total : ''}</td>
-        <td className={classes.tableCell}>{rq.size}</td>
-        <td className={classes.tableCell}>{rq.quantity}</td>
-        
-        <td className={classes.tableCell}>{allocation.totalAllocationPerSize[rqIndex]}</td>
-        <td className={classes.tableCell}>{allocation.overstockPerSize[rqIndex]}</td>
-        
-       
-        
-      </tr>
-    )) 
-  ))}
+      // Calculate the difference
+      const difference = rq.quantity - actualReceivedQty;
 
+      if (isNaN(difference)) return null; 
+
+      return (
+        <tr key={`${index}-${rqIndex}`} className={classes.tableCell}>
+          <td className={classes.tableCell}>{allocation.skuNumbers[rqIndex]}</td>
+          <td className={classes.tableCell}>{rqIndex === 0 ? allocation.style_no : ''}</td>
+          <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.description : ''}</td>
+          <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.color : ''}</td>
+          <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.cost : ''}</td>
+          <td className={classes.tableCell}>{rqIndex === 0 && allocation.styles ? allocation.styles.msrp : ''}</td>
+          <td className={classes.tableCell}>{rqIndex === 0 ? allocation.supplierName : ''}</td>
+          <td className={classes.tableCell} >{rqIndex === 0 ? allocation.poNo : ''}</td>
+          <td className={classes.tableCell}>{rqIndex === 0 ? allocation.total : ''}</td>
+          <td className={classes.tableCell}>{rq.size}</td>
+          <td className={classes.tableCell}>{rq.quantity}</td>
+          <td className={classes.tableCell}>{allocation.totalAllocationPerSize[rqIndex]}</td>
+          <td className={classes.tableCell}>{allocation.overstockPerSize[rqIndex]}</td>
+          <td className={classes.tableCell}>{difference !== 0 ? difference : ''}</td> {/* Difference column */}
+        </tr>
+      );
+    })
+  ))
+}
 </tbody>
             </Table>
           </Paper>

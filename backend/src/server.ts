@@ -15,7 +15,7 @@ import Style from './database/StyleData';
 import Allocation from './database/AllocationData';
 //import Allocation from './database/AllocationData';
 
- 
+     
 
 const cors = require ('cors'); 
  
@@ -58,7 +58,7 @@ app.use(passport.authenticate("session"));
 app.use(bodyParser.json());  
 app.use(cookieParser());
 app.use(express.urlencoded({extended: false}));
-
+  
 
 app.use(cors({
   origin: 'http://localhost:3000', // replace with your client app's URL
@@ -78,7 +78,7 @@ const initDatabase = async () => {
   try {
     await sequelize.authenticate();
     console.log('Connection has been established successfully.');
-//await Allocation.sync({force:true});
+    //await Allocation.sync({force:true}); 
 //await Style.sync({force:true})
    
      sessionStore.sync({alter: true});
