@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Table,  Text, Container, Grid,  Col, Input, Center, Checkbox, TextInput, Button } from '@mantine/core';
 import Homepage from '../Navigation/parentHome';
 import { useLocation } from 'react-router-dom';
+import { RefreshContext } from '../privateRoute/RefreshContext';
 
 
 interface SizeQuantity {
@@ -40,6 +41,7 @@ const AllocationComponent1: React.FC = () => {
   const [, setNavbarOpened] = useState(false);
   const [isChecked, setIsChecked] = useState<boolean[]>([]);
   const [totalQuantity, setTotalQuantity] = useState<number>(0);
+  const { refresh } = useContext(RefreshContext);
 
 
   const { pathname } = useLocation(); // Import useLocation from 'react-router-dom'
@@ -88,7 +90,7 @@ const store = decodeURIComponent(encodedStoreName); // Decode the URL-encoded st
     };
   
     fetchData();
-  }, [store]);
+  }, [store, refresh]);
   
 
   const updateInitialsAndStatus = async (statusValue: boolean) => {

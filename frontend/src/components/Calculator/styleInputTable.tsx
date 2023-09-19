@@ -116,15 +116,15 @@ const Header: React.FC<HeaderProps> = ({
   
 
   const handleStyleNoChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setStyleNo(event.target.value);
+    setStyleNo(event.target.value.toUpperCase());
   };
-
+  
   const handleDescriptionChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setDescription(event.target.value);
+    setDescription(event.target.value.toUpperCase());
   };
-
+  
   const handleColorChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setColor(event.target.value);
+    setColor(event.target.value.toUpperCase());
   };
 
   const handleCostChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -152,12 +152,12 @@ const Header: React.FC<HeaderProps> = ({
         <Grid gutter="xs"   justify="center" >
         <Col span={6}>
              <TextInput
-                 label="PO No."
+                 label={<Text  ta="center" fz="lg" fw={600}>PO No </Text>}
                  id={poNoId}
                  value={poNo}
                  placeholder="Enter PO No"
                  onChange={handlePoNoChange}
-                 style={{ width: '80%' }}
+                 style={{ width: '80%'}}
                />
                </Col>
                </Grid>
@@ -167,7 +167,7 @@ const Header: React.FC<HeaderProps> = ({
               <Col span={6}>
               <Select
   placeholder="Select supplier"
-  label="Supplier"
+  label={<Text  ta="center" fz="lg" fw={600}>Supplier</Text>}
   id={supplierNameId}
   value={supplierName}
   data={allSuppliers}
@@ -183,18 +183,18 @@ const Header: React.FC<HeaderProps> = ({
     
              
               <TextInput
-                label="Style No."
+                label={<Text  ta="center" fz="lg" fw={600} >Style No. </Text>}
                 id={styleNoId}
-                value={styleNo}
+                value={styleNo.toUpperCase()}
                 placeholder="Enter style number"
                 onChange={handleStyleNoChange}
                 style={{ width: '80%' }}
               />
               
               <TextInput
-                label="Description"
+                label={<Text  ta="center" fz="lg" fw={600}>Description</Text>}
                 id={descriptionId}
-                value={description}
+                value={description.toUpperCase()}
                 placeholder="Enter description"
                 onChange={handleDescriptionChange}
                 style={{ width: '80%' }}
@@ -202,15 +202,15 @@ const Header: React.FC<HeaderProps> = ({
             </Col>
             <Col span={6}>
               <TextInput
-                label="Color"
+                label={<Text  ta="center" fz="lg" fw={600}>Color</Text>}
                 id={colorId}
-                value={color}
+                value={color.toUpperCase()}
                 placeholder="Enter color"
                 onChange={handleColorChange}
                 style={{ width: '80%' }}
               />
               <TextInput
-                label="Cost"
+               label={<Text  ta="center" fz="lg" fw={600}>Cost</Text>}
                 id={costId}
                 value={cost}
                 placeholder="Enter cost"
@@ -218,7 +218,7 @@ const Header: React.FC<HeaderProps> = ({
                 style={{ width: '80%' }}
               />
               <TextInput
-                label="MSRP"
+                label={<Text  ta="center" fz="lg" fw={600}>MSRP</Text>}
                 id={msrpId}
                 value={msrp}
                 placeholder="Enter MSRP"

@@ -13,49 +13,50 @@ function RegisterPage() {
 	const [showRegistrationError, setShowRegistrationError] = useState(false);
 
 	const handleRegister = async () => {
-		setShowRegistrationError(false);
-		if (!(registerCredentials.email.includes("@") && registerCredentials.email.includes("."))) {
-			setShowRegistrationError(true);
-			alert("Email must be valid");
-			return;
-		}
-		if (
-			registerCredentials.first_name === "" ||
-			registerCredentials.last_name === "" ||
-			registerCredentials.password === ""
-		) {
-			setShowRegistrationError(true);
-			return;
-		}
-		let registerCredentialsLocalCopy = JSON.parse(JSON.stringify(registerCredentials));
-		registerCredentialsLocalCopy.first_name = registerCredentialsLocalCopy.first_name.trim();
-		registerCredentialsLocalCopy.last_name = registerCredentialsLocalCopy.last_name.trim();
-		registerCredentialsLocalCopy.email = registerCredentialsLocalCopy.email.trim();
+        setShowRegistrationError(false);
 
-		registerCredentialsLocalCopy.first_name =
-			registerCredentialsLocalCopy.first_name.charAt(0).toUpperCase() +
-			registerCredentialsLocalCopy.first_name.slice(1);
-		registerCredentialsLocalCopy.last_name =
-			registerCredentialsLocalCopy.last_name.charAt(0).toUpperCase() +
-			registerCredentialsLocalCopy.last_name.slice(1);
+        if (
+            registerCredentials.email === "" ||
+            registerCredentials.first_name === "" ||
+            registerCredentials.last_name === "" ||
+            registerCredentials.password === ""
+        ) {
+            setShowRegistrationError(true);
+            return;
+        }
 
-		try {
-			let fetchRes = await fetch("http://localhost:5000/api/auth/register", {
-				method: "POST",
-				body: JSON.stringify(registerCredentialsLocalCopy),
-				credentials: "include",
-				headers: {
-					"Content-Type": "application/json",
-				},
-			});
-			let response = await fetchRes.json();
-			if (response.status === 200) {
-				window.location.href = "/";
-			}
-		} catch (e) {
-			console.log(e);
-		}
-	};
+        let registerCredentialsLocalCopy = JSON.parse(JSON.stringify(registerCredentials));
+        registerCredentialsLocalCopy.first_name = registerCredentialsLocalCopy.first_name.trim();
+        registerCredentialsLocalCopy.last_name = registerCredentialsLocalCopy.last_name.trim();
+        registerCredentialsLocalCopy.username = registerCredentialsLocalCopy.email.trim();
+
+        registerCredentialsLocalCopy.first_name =
+            registerCredentialsLocalCopy.first_name.charAt(0).toUpperCase() +
+            registerCredentialsLocalCopy.first_name.slice(1);
+        registerCredentialsLocalCopy.last_name =
+            registerCredentialsLocalCopy.last_name.charAt(0).toUpperCase() +
+            registerCredentialsLocalCopy.last_name.slice(1);
+
+        try {
+            let fetchRes = await fetch("http://localhost:5000/api/auth/register", {
+                method: "POST",
+                body: JSON.stringify(registerCredentialsLocalCopy),
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+            let response = await fetchRes.json();
+            if (response.status === 200) {
+                window.location.href = "/";
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    };
+
+  
+
 
 	return (
 		<Container>
@@ -93,7 +94,7 @@ function RegisterPage() {
 				<SimpleGrid breakpoints={[{ minWidth: "xs", cols: 2 }]} cols={1}>
 					<TextInput
 						placeholder="Enter email address"
-						label="Email"
+						label="Username"
 						value={registerCredentials.email}
 						withAsterisk
 						onChange={(event) =>

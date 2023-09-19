@@ -39,10 +39,9 @@ function LoginProfilePage() {
 				credentials: "include",
 			});
 			let response = await fetchRes.json();
-			if (response.message === "Success") {
-				setAuthenticatedUser(response.user);
-				setLoginErrorMessage("");
-				navigate("/");
+			if (response.message === "Success" && response.user._id) {
+				setAuthenticatedUser(response.user); // Set the user immediately after successful login
+				navigate("/");  // Redirect to the homepage
 			} else {
 				setLoginErrorMessage(response.message);
 			}
@@ -50,6 +49,9 @@ function LoginProfilePage() {
 			console.log(e);
 		}
 	};
+
+	
+	
 	const handleLogout = async () => {
 		try {
 			let fetchRes = await fetch("http://localhost:5000/api/auth/logout", {
@@ -119,6 +121,8 @@ function LoginProfilePage() {
 			console.log(e);
 		}
 	};
+
+	
 
 	return (
 		<>	
@@ -213,7 +217,7 @@ function LoginProfilePage() {
 						<Card>
 							<TextInput
 								placeholder="Enter email address"
-								label="Email"
+								label="Username"
 								value={loginCredentials.email}
 								onChange={(event) =>
 									setLoginCredentials({ ...loginCredentials, email: event.target.value })
@@ -227,9 +231,14 @@ function LoginProfilePage() {
 									setLoginCredentials({ ...loginCredentials, password: event.target.value })
 								}
 							/>
-							<Button mt={"md"} onClick={handleLogin}>
-								Login
+							<Button mt={"md"} onClick={() => {
+    							setNavbarOpened(false);    			
+    							
+								handleLogin();
+								}}>
+    									Login
 							</Button>
+							
 							{loginErrorMessage !== "" && (
 								<Card.Section mt={"md"}>
 									<Alert icon={<IconAlertCircle />} color="red" title="Error">

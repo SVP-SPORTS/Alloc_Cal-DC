@@ -111,18 +111,25 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
       alignment: 'center',
       margin: [0, 0, 0, 10]
     },
-    { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line
+    { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line  
       {
-        columns: [
-          
+        columns: [    
+          { text: `#PO: ${poNo}`, style: 'header' },      
           { text: `Supplier: ${supplierName}`, style: 'header' },
-          { text: `StyleNo: ${styleNo}`, style: 'header' },
-         
+                 
         ],
         // Optional space between columns
         columnGap: 10,
       },
       { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line
+      {
+        columns: [    
+         
+          { text: `StyleNo: ${styleNo}`, style: 'header' },         
+        ],
+        // Optional space between columns
+        columnGap: 10,
+      },
       { text: `Description: ${description}`, style: 'subheader' },
       { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 700, y2: 5, lineWidth: 0.5, lineColor: '#d0d0d0' }] }, // Horizontal line
       {
@@ -143,9 +150,10 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
       { width: '*', text: '' }, // Empty column for centering
       {
         width: 'auto',
+        alignment: 'center',
         table: {
           body: body,
-         
+          
         },
         layout: {
           hLineWidth: function () {
@@ -161,9 +169,10 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
             return '#d0d0d0'; // Color of vertical lines
           },
           paddingLeft :() => 3,
-          paddingRight: () => 6,
-          paddingTop: () => 4,
-          paddingBottom: () => 2,
+          paddingRight: () => 3,
+          paddingTop: () => 3,
+          paddingBottom: () => 1,
+          
         }
       },
       { width: '*', text: '' } // Empty column for centering
@@ -214,8 +223,9 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
   const onSave = async () => {
 
     const statusArray = Array(tableData.length).fill(false);
+    const initialArray = Array(tableData.length).fill('SVP');
     const data = {
-      //poNo: poNo,
+      poNo: poNo,
       supplier_name: supplierName,
       styleNo: styleNo,
       description: description,
@@ -233,7 +243,7 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
       totalAllocationPerSize: sizes.map((_size, index) => calculateTotalAllocation(index)),
       overstockPerSize: sizes.map((_size, index) => calculateOverstock(index)),
       // assuming that allocationId is available
-      initial: tableData.map(data => data.storeName),
+      initial: initialArray
     };
 
     try {
@@ -290,15 +300,22 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
     'STEELES', 'WEB','SC SuperStore', 'OPM', 'VAUGHAN', 'BRAMPTON',  'OPM-HAMILTON', 'NIAGARA', 'SCARBOROUGH', 'CARTWRIGHT', 'ALLISTON', 'PICKERING', 'YORKGATE'
   ];
 
-  const preferredSizes = ['10', '10.5', '9.5','9'];
+ 
   const allocateSizesToStores = (): void => {
     const newTableData: StoreData[] = [...tableData];
     const totalAllocatedQty: number[] = new Array(newTableData.length).fill(0);
     const totalProductionQuantity: number = totalProductionQuantities.reduce((total: number, qty: number) => total + qty, 0);
-    const maxPreferredSizeQuantity: number = 10;
+    // Calculate the total standard quantity across all stores
+    const totalStandardQuantity = standardQuantities.reduce((total, qty) => total + qty, 0);
 
     const remainingQuantities: number[] = [...totalProductionQuantities];
 
+      // Check if the total standard quantity is more than the total production quantity
+      if (totalStandardQuantity > totalProductionQuantity) {
+        // If it is, display an error message and terminate the function
+        alert('You are over ambitious. The total standard quantity should not exceed the total production quantity.');
+        
+      }
 
     //Step 1: Initialize
     // Create a mapping of store names to priorities
@@ -544,8 +561,6 @@ newTableData.forEach((storeData, storeIndex) => {
 
 
 
-
-
   //Calculate OVERSTOCK
   const allocateOverstockToStore = (tableData: StoreData[], overstockStore: string | null) => {
     if (!overstockStore) {
@@ -596,45 +611,51 @@ newTableData.forEach((storeData, storeIndex) => {
     }
   };
 
-
-
   const handleStoreChange = (event: React.ChangeEvent<HTMLInputElement>, storeName: string) => {
     const storeIndex = storeNames.indexOf(storeName);
     const newData = [...tableData];
-    let newStandardQuantities = [...standardQuantities]; // Copy the current standardQuantities state
 
     if (!event.target.checked) {
-      // Remove the store from the table data and stores state if it's unchecked
-      const updatedData = newData.filter((row) => row.storeName !== storeName);
-      setTableData(updatedData);
-      setStores(stores.filter((store) => store !== storeName));
-      setAllChecked(false); // uncheck the "Check All" checkbox
+        // Remove the store from the table data and stores state if it's unchecked
+        const updatedData = newData.filter((row) => row.storeName !== storeName);
+        setTableData(updatedData);
+        setStores(stores.filter((store) => store !== storeName));
+        setAllChecked(false); // uncheck the "Check All" checkbox
 
-      // Also reset the standard quantity for the unchecked store
-      newStandardQuantities[storeIndex] = 0;
-      setStandardQuantities(newStandardQuantities);
+        // Reset the standard quantity for the unchecked store without affecting the others
+        const newStandardQuantities = [...standardQuantities];
+        newStandardQuantities[storeIndex] = 0;
+        setStandardQuantities(newStandardQuantities);
     } else {
-      // Only add the store back to the table and stores state if it's not already there
-      if (!stores.includes(storeName)) {
-        setStores([...stores, storeName]);
-        const newRow = {
-          storeName: storeName,
-          sizeQuantities: sizes.map((size) => {
-            return {
-              size: size,
-              quantity: 0,
+        // Only add the store back to the table and stores state if it's not already there
+        if (!stores.includes(storeName)) {
+            setStores(prevStores => [...prevStores, storeName]);
+            const newRow = {
+                storeName: storeName,
+                sizeQuantities: sizes.map((size) => {
+                    return {
+                        size: size,
+                        quantity: 0,
+                    };
+                }),
             };
-          }),
 
-        };
+            // Remove any previous data for the store
+            const withoutStoreData = newData.filter(row => row.storeName !== storeName);
+            withoutStoreData.push(newRow);
+            setTableData(withoutStoreData);
 
+            // Re-add the standard quantity for the checked store
+            const newStandardQuantities = [...standardQuantities];
+            newStandardQuantities[storeIndex] = 0; // or any default value you'd like
+            setStandardQuantities(newStandardQuantities);
 
-        newData.push(newRow);
-        setTableData(newData);
-        setAllChecked(stores.length + 1 === storeNames.length); // check the "Check All" checkbox if all stores are checked
-      }
+            setAllChecked(stores.length + 1 === storeNames.length); // check the "Check All" checkbox if all stores are checked
+        }
     }
-  };
+};
+
+
 
 
 
@@ -722,7 +743,7 @@ newTableData.forEach((storeData, storeIndex) => {
       }
     }
 
-    setSizes([]);
+    
     setTableData([]);
     setTotalProductionQuantities([]);
     setStandardQuantities(new Array(13).fill(0));
@@ -730,13 +751,6 @@ newTableData.forEach((storeData, storeIndex) => {
     setCalculateClicked(false);
     setTotalStdQty(0);
     setOverstockStore(null);
-    setSupplierName('');
-    setStyleNo('');
-    setDescription('');
-    setColor('');
-    setCost('');
-    setMsrp('');
-    setPoNo('');
     setStores(storeNames);
     setAllChecked(true);
   };
@@ -749,7 +763,7 @@ newTableData.forEach((storeData, storeIndex) => {
 
 
   return (
-    < >
+    <>
 
       <Header
         poNo={poNo}
@@ -777,7 +791,7 @@ newTableData.forEach((storeData, storeIndex) => {
 
             <Grid.Col >
 
-              <Text component="label" htmlFor="size-input-field">
+              <Text  ta="center" fz="lg" fw={600} component="label" htmlFor="size-input-field">
                 Sizes:
               </Text>
 
@@ -837,7 +851,7 @@ newTableData.forEach((storeData, storeIndex) => {
                   sm: 720,
                   md: 960,
                   lg: 1140,
-                  xl: 1320,
+                  xl: 2340,
                 },
               },
             },
@@ -858,30 +872,33 @@ newTableData.forEach((storeData, storeIndex) => {
                   <th> STD QTY</th>
                 </tr>
               </thead>
-              <tbody >
+              <tbody style={{border:'1px solid #d0d0d0', borderRight:'1px solid #d0d0d0'}}>
                 <tr>
-                  <td>RCV QTY</td>
+                  <td style={{fontWeight: 'bold'}} >RCV QTY</td>
                   {sizes.map((_size, index) => (
-                    <td key={`total-production-quantity-${index}`}>
+                    <td key={`total-production-quantity-${index}`}  style={{borderLeft:'1px solid #d0d0d0'}}>
+                      
                       <Input
                         type="number"
                         value={totalProductionQuantities[index] || 0}
                         onChange={(e) => handleTotalProductionQuantityChange(e, index)}
-                        style={{ width: "100%" }}
+                        size="md" 
+                        variant="unstyled"
+                       style={{width: '100%'}}               
                       />
                     </td>
                   ))}
-                  <td>
-                    <Input type="number" value={totalProductionSum} readOnly style={{ width: "100%" }} />
+                  <td style={{borderRight:'1px solid #d0d0d0', borderLeft: '1px solid #d0d0d0'}}>
+                    <Input type="number" value={totalProductionSum} readOnly style={{ width: "100%" }}  size='md' variant='unstyled'/>
                   </td>
                   <td />
                 </tr>
                 {tableData.map((row, rowIndex) => (
-                  <tr key={row.storeName}>
-                    <td>{row.storeName}</td>
+                  <tr key={row.storeName} >
+                    <td style={{fontWeight: 'bold'}}>{row.storeName}</td>
                     {row.sizeQuantities.map((sizeData, sizeIndex) => (
 
-                      <td key={sizeData.size}>
+                      <td key={sizeData.size} style={{borderLeft:'1px solid #d0d0d0'}}>
                         <Input
                           type="number"
                           value={sizeData.quantity}
@@ -889,54 +906,60 @@ newTableData.forEach((storeData, storeIndex) => {
                             handleQuantityChange(e, rowIndex, sizeIndex)
                           }
                           style={{ width: "100%" }}
+                          size='md'
+                          variant='unstyled'
                         />
                       </td>
                     ))}
-                    <td>
+                    <td style={{borderLeft:'1px solid #d0d0d0'}}>
                       <Input
                         type="number"
                         value={calculateRowTotal(rowIndex)}
                         readOnly
                         style={{ width: "100%" }}
+                        size='md'
+                        variant='unstyled'
                       />
                     </td>
-                    <td>
+                    <td style={{borderLeft:'1px solid #d0d0d0'}}>
                       <Input
                         type="number"
                         value={standardQuantities[rowIndex]}
                         onChange={(e) => handleStandardQuantityChange(e, rowIndex)}
                         placeholder="Enter standard quantity"
                         style={{ width: "100%" }}
+                        variant='unstyled'
+                        size='md'
                       />
                     </td>
 
                   </tr>
                 ))}
-                <tr>
-                  <td>Total allocation</td>
+                <tr style={{borderBottom:'1px solid #d0d0d0', borderTop:'1px solid #d0d0d0'}}>
+                  <td  style={{fontWeight: 'bold'}}>Total allocation</td>
                   {sizes.map((_, index) => (
-                    <td key={`total-allocation-${index}`}>
-                      {calculateTotalAllocation(index)}
+                    <td key={`total-allocation-${index}`} style={{borderLeft:'1px solid #d0d0d0'}}>
+                     <Input type='number' value= {calculateTotalAllocation(index)}  style={{width: '100%'}} size='md' variant='unstyled'/>
                     </td>
                   ))}
-                  <td>{calculateTotalSizeQuantitiesSum()}</td>
-                  <td>{calculateTotalStdQtySum()}</td>
+                  <td style={{borderLeft:'1px solid #d0d0d0'}}> <Input type='number' value= {calculateTotalSizeQuantitiesSum()}  style={{width: '100%'}} size='md' variant='unstyled'/></td>
+                  <td style={{borderLeft:'1px solid #d0d0d0'}}>  <Input type='number' value= {calculateTotalStdQtySum()}  style={{width: '100%'}} size='md' variant='unstyled'/></td>
                 </tr>
                 <tr>
-                  <td>Overstock</td>
+                  <td  style={{fontWeight: 'bold'}}>Overstock</td>
                   {sizes.map((_, index) => (
-                    <td key={`overstock-${index}`}>
-                      {calculateOverstock(index)}
+                    <td key={`overstock-${index}`} style={{borderLeft:'1px solid #d0d0d0'}}>
+                      <Input type='number' value={calculateOverstock(index)}  style={{width: '100%'}} size='md' variant='unstyled'/>
                     </td>
 
                   ))}
-                  <td>
-                    <Center maw={500} h={30} mx="auto">
-                      {Math.max(totalProductionSum - calculateTotalSizeQuantitiesSum(), 0)}
-                    </Center>
+                  <td style={{borderLeft:'1px solid #d0d0d0', borderRight: '1px solid #d0d0d0'}}>
+                   
+                    <Input type='number' value={Math.max(totalProductionSum - calculateTotalSizeQuantitiesSum(), 0)}  style={{width: '100%'}} size='md' variant='unstyled'/> 
+                  
                   </td>
 
-
+                  
 
                 </tr>
               </tbody>

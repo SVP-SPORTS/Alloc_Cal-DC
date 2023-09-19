@@ -39,14 +39,23 @@ router.get("/success", (req: Request, res: Response): void => {
 
 router.post("/login", (req: Request, res: Response, next: NextFunction): void => {
 	passport.authenticate("local", (err: Error, user: IUserCredentialsFromDatabase, info: any) => {
-        if (err) { return next(err); }
-        if (!user) { return res.redirect('/auth/failure'); }
+        if (err) { 
+            console.error(err);
+            return res.status(500).json({ message: "Server error" }); 
+        }
+        if (!user) { 
+            return res.status(401).json({ message: "Invalid credentials" }); 
+        }
         req.logIn(user, function(err) {
-          if (err) { return next(err); }
-          return res.redirect('/');
+            if (err) { 
+                console.error(err);
+                return res.status(500).json({ message: "Server error during login" }); 
+            }
+            return res.status(200).json({ message: "Success", user: user });
         });
     })(req, res, next);
 });
+
  
 router.post("/register", async (req: Request, res: Response): Promise<void> => {
 	let body: IRegisterNewUser = req.body;

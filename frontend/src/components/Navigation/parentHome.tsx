@@ -32,7 +32,7 @@ const useStyles = createStyles((theme: MantineTheme) => ({
     top: 0,
     width: "100%",
     zIndex: 1000,
-    padding: theme.spacing.xs,
+    padding: `${theme.spacing.xs}px ${theme.spacing.md}px`,
     backgroundColor:
       theme.colorScheme === "dark"
         ? theme.colors.dark[7]
@@ -47,11 +47,19 @@ const useStyles = createStyles((theme: MantineTheme) => ({
     alignItems: "center",
     display: "flex",
   },
-
   logo: {
     marginRight: theme.spacing.md,
   },
+  loginInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    
+  }
 }));
+
+
+type Scope = 'User' | 'Admin' | 'SuperAdmin'
+
 
 export default function Homepage({
   setNavbarOpened,
@@ -77,7 +85,7 @@ export default function Homepage({
         navigate("/user/login");
       } else {
         setAuthenticatedUser(response.user);
-        navigate("/");
+        
       }
     } catch (e) {
       console.log(e);
@@ -120,10 +128,35 @@ export default function Homepage({
     </Paper>
   );
 
+  //
+  function getNavItemsForScope(scope: Scope | null): string[] {
+    if (!scope) return [];
+  
+    switch (scope) {
+      case 'User':
+        return ['/storeData'];
+      case 'Admin':
+        return ['/allocCal', '/floorUser', '/allocData', '/styleData', '/styleqty'];
+      case 'SuperAdmin':
+        return [
+          '/allocCal',
+          '/floorUser',
+          '/storeData',
+          '/allocData',
+          '/styleData',
+          '/styleqty',
+          '/users',
+        ];
+      default:
+        return [];
+    }
+  }
+  
   const NavButtons = (
     <>
+    
       <Navbar.Section grow>
-        <Flex justify="center" align="center" direction="row">
+      <Flex justify="space-between" align="center" direction="row" style={{ width: '100%' }}>
           <Link to="/" onClick={() => navigate("/")}>
             <Image
               height={55}
@@ -138,19 +171,23 @@ export default function Homepage({
             />
           </Link>
 
-          <Button
-            className={classes.navButton}
-            onClick={() => navigate("/allocCal")}
-          >
-            Allocation Calculator
-          </Button>
+          {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/allocCal') && (
+      <Button
+        className={classes.navButton}
+        onClick={() => navigate("/allocCal")}
+      >
+        Allocation Calculator
+      </Button>
+    )}
+       {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/floorUser') && (
           <Button
             className={classes.navButton}
             onClick={() => navigate("/floorUser")}
           >
             Floor User
           </Button>
-         
+       )}
+       {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/storeData') && (
       <Menu>
       <Menu.Target>
       <Button className={classes.navButton}>GO TO STORE</Button>
@@ -165,72 +202,80 @@ export default function Homepage({
         
         </Menu.Dropdown>
       </Menu>
+       )}
+         {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/allocData') && (
           <Button
             className={classes.navButton}
             onClick={() => navigate("/allocData")}
           >
             Transfer List
           </Button>
+         )}
+          {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/styleData') && (
           <Button
             className={classes.navButton}
             onClick={() => navigate("/styleData")}
           >
             Style List
           </Button>
+          )}
+           {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/styleqty') && (
           <Button
             className={classes.navButton}
             onClick={() => navigate("/styleqty")}
           >
             PO Worksheet
           </Button>
+           )}
+           {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/users') && (
           <Button
             className={classes.navButton}
             onClick={() => navigate("/users")}
           >
             USER
           </Button>
-
+           )}
+           <div className={classes.loginInfo}>
           {authenticatedUser._id !== null &&
-          authenticatedUser._id !== undefined ? (
-            <>
+            authenticatedUser._id !== undefined ? (
+              <>
+                <NavLink
+                  pt={"md"}
+                  pb={"md"}
+                  icon={<IconUser />}
+                  label={
+                    <React.Fragment>
+                      <Text fz="lg" fw={450}>{authenticatedUser.email}</Text>
+                    </React.Fragment>
+                  }
+                  defaultOpened={false}
+                >
+                  <NavLink
+                    label={<Text>Profile</Text>}
+                    active={location.pathname === "/user/login"}
+                    onClick={() => {
+                      setNavbarOpened(false);
+                      navigate("/user/login");
+                    }}
+                  />
+                  <NavLink label={<Text>Logout</Text>} onClick={handleLogout} />
+                </NavLink>
+              </>
+            ) : (
               <NavLink
                 pt={"md"}
                 pb={"md"}
-                icon={<IconUser />}
-                label={
-                  <React.Fragment>
-                    <Text>
-                      {authenticatedUser.first_name}{" "}
-                      {authenticatedUser.last_name}
-                    </Text>
-                    <Text color="dimmed">{authenticatedUser.email}</Text>
-                  </React.Fragment>
-                }
-                defaultOpened={false}
-              >
-                <NavLink
-                  label={<Text>Profile</Text>}
-                  active={location.pathname === "/user/login"}
-                  onClick={() => {
-                    setNavbarOpened(false);
-                    navigate("/user/login");
-                  }}
-                />
-                <NavLink label={<Text>Logout</Text>} onClick={handleLogout} />
-              </NavLink>
-            </>
-          ) : (
-            <NavLink
-              pt={"md"}
-              pb={"md"}
-              icon={<IconLogin />}
-              label={<Text>LogIn</Text>}
-              onClick={() => {
-                setNavbarOpened(false);
-                loginUserFromSession();
-              }}
-            />
-          )}
+                icon={<IconLogin />}
+                label={<Text>LogIn</Text>}
+                onClick={() => {
+                  setNavbarOpened(false);
+                  loginUserFromSession();
+                  navigate("/user/login");
+                  
+                }}
+              />
+            )}
+        </div>
         </Flex>
       </Navbar.Section>
     </>
@@ -272,34 +317,60 @@ export default function Homepage({
       }}
     >
       <Flex direction="column" style={{ marginTop: "35px" }}>
+      {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/allocCal') && (
         <NavLink
           label={<Text>Allocation Calculator</Text>}
           onClick={() => navigate("/allocCal")}
         />
+      )}
+      {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/floorUser') && (
         <NavLink
           label={<Text>Floor User</Text>}
           onClick={() => navigate("/floorUser")}
         />
-        <NavLink
-          label={<Text>Go To Store</Text>}
-          onClick={() => navigate("/storedata")}
+      )}
+      {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/storeData') && (
+         <Menu>
+      <Menu.Target>
+      <NavLink
+          label={<Text>Go To Store</Text>}          
         />
+      </Menu.Target>
+        <Menu.Dropdown>
+         
+          
+              <Menu.Item>
+              {storeNamesMenu}
+              </Menu.Item>
+           
+        
+        </Menu.Dropdown>
+      </Menu>
+      )}
+      {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/allocData') && (
         <NavLink
           label={<Text>Transfer List</Text>}
           onClick={() => navigate("/allocData")}
         />
+      )}
+      {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/styleData') && (
         <NavLink
           label={<Text>Style List</Text>}
           onClick={() => navigate("/styleData")}
         />
+      )}
+      {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/styleqty') && (
         <NavLink
           label={<Text>PO Data</Text>}
           onClick={() => navigate("/styleqty")}
         />
+      )}
+      {getNavItemsForScope(authenticatedUser.scope as Scope | null).includes('/users') && (
         <NavLink
           label={<Text>Users</Text>}
           onClick={() => navigate("/users")}
         />
+      )}
         {authenticatedUser._id !== null &&
         authenticatedUser._id !== undefined ? (
           <>
@@ -333,10 +404,11 @@ export default function Homepage({
             pt={"md"}
             pb={"md"}
             icon={<IconLogin />}
-            label={<Text>Click here to login</Text>}
+            label={<Text>LogIn</Text>}
             onClick={() => {
               setNavbarOpened(false);
               loginUserFromSession();
+              navigate("/user/login");
             }}
           />
         )}

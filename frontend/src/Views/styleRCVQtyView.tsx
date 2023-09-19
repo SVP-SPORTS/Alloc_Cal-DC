@@ -239,16 +239,23 @@ const StyleQuantitiesTable: React.FC = () => {
               </thead>
               <tbody className={classes.tableCell}>
               {Array.isArray(filteredData) && filteredData
-  .filter((row) => row.style_no.toLowerCase().includes(searchTerm.toLowerCase()))
-  .flatMap((allocation, index) => (
-    allocation.receivedQty.map((rq, rqIndex) => {
-      // Assuming that allocation.styles.total_qty is the actual received quantity from the Style table
-      const actualReceivedQty = allocation.styles && allocation.styles.receivedQty ? allocation.styles.receivedQty[rqIndex].quantity : 0;
+    .filter((row) => row.style_no.toLowerCase().includes(searchTerm.toLowerCase()))
+    .flatMap((allocation, index) => {
+      if (!Array.isArray(allocation.receivedQty)) return null;  // Check if receivedQty is an array
 
-      // Calculate the difference
-      const difference = rq.quantity - actualReceivedQty;
+      return allocation.receivedQty.map((rq, rqIndex) => {
+        if (!rq || rq.quantity === undefined) return null;  // Check if rq is defined and has quantity
 
-      if (isNaN(difference)) return null; 
+        // Assuming that allocation.styles.total_qty is the actual received quantity from the Style table
+        const actualReceivedQty = allocation.styles && Array.isArray(allocation.styles.receivedQty) && allocation.styles.receivedQty[rqIndex]
+          ? allocation.styles.receivedQty[rqIndex].quantity
+          : 0;
+
+        // Calculate the difference
+        const difference = rq.quantity - actualReceivedQty;
+
+        if (isNaN(difference)) return null; 
+ 
 
       return (
         <tr key={`${index}-${rqIndex}`} className={classes.tableCell}>
@@ -267,10 +274,10 @@ const StyleQuantitiesTable: React.FC = () => {
           <td className={classes.tableCell}>{allocation.overstockPerSize[rqIndex]}</td>
           <td className={classes.tableCell}>{difference !== 0 ? difference : ''}</td> {/* Difference column */}
         </tr>
-      );
+      
+    )});
     })
-  ))
-}
+  }
 </tbody>
             </Table>
           </Paper>

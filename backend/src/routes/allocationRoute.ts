@@ -49,7 +49,7 @@ async function generatePoNo(transaction: Transaction) {
 }
 
 router.post('/create', isAuthenticated, checkScope('Admin'), async (req: Request, res: Response, next: NextFunction) => {
-  const { supplier_name, styleNo, description, color, cost, msrp, storeName, sizeQuantities,showOnWeb, receivedQty, total,status, totalAllocationPerSize, overstockPerSize, initial } = req.body;
+  const { supplier_name, styleNo, description, color, cost, msrp, storeName, sizeQuantities, showOnWeb, receivedQty, total, status, totalAllocationPerSize, overstockPerSize, initial, poNo } = req.body;
   const { first_name, location } = req.user as IUserSessionInfo;
 
   const transaction = await sequelize.transaction();
@@ -59,13 +59,11 @@ router.post('/create', isAuthenticated, checkScope('Admin'), async (req: Request
     await Supplier.upsert({ supplier_name }, { transaction });
 
     let existingSupplier = await Supplier.findOrCreate({ where: { supplier_name } });
-
-    // Check if there is already a purchase order for this supplier
-    let existingPo = await PurchaseOrder.findOne({ where: { supplier_name }, order: [ [ 'createdAt', 'DESC' ] ], transaction });
+    // Check if there is already a purchase order for the provided poNo
+    let existingPo = await PurchaseOrder.findOne({ where: { po_no: poNo }, transaction });
 
     if (!existingPo) {
-      // If not, generate the new Purchase Order number and create a new Purchase Order
-      const poNo = await generatePoNo(transaction);
+      // If not, create a new Purchase Order using the provided poNo
       existingPo = await PurchaseOrder.create({ po_no: poNo, supplier_name }, { transaction });
     }
 
@@ -80,14 +78,13 @@ router.post('/create', isAuthenticated, checkScope('Admin'), async (req: Request
         msrp,
         first_name,
         location,
-        po_no: existingPo.po_no,
+        po_no: poNo,  // Use the provided poNo
     }, { transaction });
 
     let existingStyle = await Style.findOne({ where: { style_no: styleNo } });
 
     // Use upsert for Allocation
     const skuNumbers = await generateSkus(receivedQty, transaction);
-
     let existingAllocation = await Allocation.findOne({ where: { style_no: styleNo} });
     await Allocation.upsert({
         storeName,
@@ -99,14 +96,13 @@ router.post('/create', isAuthenticated, checkScope('Admin'), async (req: Request
         overstockPerSize,
         style_no: styleNo,
         supplierName: supplier_name,
-        poNo: existingPo.po_no,
+        poNo: poNo,  // Use the provided poNo
         initial,
         first_name,
         location,
         skuNumbers,
         showOnWeb,
     }, { transaction });
-
     
 
     await transaction.commit();
@@ -127,7 +123,7 @@ router.post('/create', isAuthenticated, checkScope('Admin'), async (req: Request
 
 //SHOW ON WEB
 
-router.get('/get/:storeName',isAuthenticated,checkScope('Admin'), async (req: Request, res: Response) => {
+router.get('/get/:storeName',isAuthenticated,checkScope('User'), async (req: Request, res: Response) => {
   const { storeName } = req.params; 
 // Get the user's location from the session
 const { location } = req.user as IUserSessionInfo;
@@ -301,7 +297,7 @@ router.put('/updated/:allocation_id', isAuthenticated,checkScope('Admin'),async 
     supplierName: supplierName,
     poNo: poNo,
     initial: initial, 
-    showOnWeb: true
+    showOnWeb: false
     
   }, {
     where: { allocation_id: req.params.allocation_id }
@@ -331,9 +327,15 @@ router.delete('/:allocation_id',isAuthenticated,checkScope('SuperAdmin') ,async 
   res.json({ message: 'Allocation deleted successfully' });
 });
 
+// get all
 router.get('/', async (req: Request, res: Response) => {
+  // Extract location from the authenticated user
+ 
+
   try {
+  
     const allocations = await Allocation.findAll({
+     
       include: [{
         model: Style,
         as: 'styles',
@@ -346,7 +348,33 @@ router.get('/', async (req: Request, res: Response) => {
     console.error(error);
     res.status(500).json({ message: "An error occurred while fetching the data." });
   }
-
 });
+
+
+// showOnWeb
+
+router.put('/updateShowOnWeb/:style_no/:poNo', isAuthenticated, checkScope('Admin'), async (req: Request, res: Response) => {
+  const { style_no, poNo } = req.params;
+  const { showOnWeb } = req.body; // Extract showOnWeb from the request body
+
+  try {
+    // Find the allocation by style_no and poNo
+    const allocation = await Allocation.findOne({ where: { style_no, poNo } });
+
+    if (!allocation) {
+      return res.status(404).json({ message: "Allocation not found" });
+    }
+
+    // Update showOnWeb property
+    allocation.showOnWeb = showOnWeb;
+    await allocation.save();
+
+    res.status(200).json({ message: 'Show on web updated successfully', allocation });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "An error occurred while updating the showOnWeb property." });
+  }
+});
+
 
 export default router; 

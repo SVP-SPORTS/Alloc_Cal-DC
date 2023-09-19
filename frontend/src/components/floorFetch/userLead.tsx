@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { Button, Col, Container, Grid, Input, Table, TextInput, Text, Center, MantineProvider, Group, Select } from '@mantine/core';
 import Homepage from '../Navigation/parentHome';
 import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
+import { RefreshContext } from '../privateRoute/RefreshContext';
 
 
 pdfMake.vfs = pdfFonts.pdfMake.vfs;
@@ -25,7 +26,8 @@ const AllocationComponent: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [imageData, setImageData] = useState<string>("");
-  
+  // Inside AllocationComponent component
+const { refresh, setRefresh } = useContext(RefreshContext);
 
   
 
@@ -37,9 +39,8 @@ const AllocationComponent: React.FC = () => {
       fetchAllocationData();
     
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [refresh]);
   
-    // Add any additional helper functions or hooks you need
     // For example, a function to fetch the allocation data based on po_no and style_no:
     const fetchAllocationData = async () => {
       setIsLoading(true);
@@ -54,6 +55,7 @@ const AllocationComponent: React.FC = () => {
         setError('The provided styleNo or poNo does not exist or match any records.');
         setIsLoading(false);
       }
+      
     };
      
    
@@ -177,6 +179,21 @@ const updateAllocationData = async () => {
   
   };
     
+//Push to Store
+  const pushToWeb = async (styleNo: string, poNo: string) => {
+    const response = await fetch(`http://localhost:5000/api/allocation/updateShowOnWeb/${styleNo}/${poNo}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ showOnWeb: true }),
+    });
+  
+    const data = await response.json();
+    setRefresh(true);
+    console.log(data); // Log the response to see the result
+    // Update the UI accordingly
+    alert('Data Pushed to Store successfully');
+  };
 
   const handleStyleDataChange = (key: string, value: any) => {
     const newData = { ...styleData, [key]: value };
@@ -312,11 +329,11 @@ const generateCode = (): string => {
   if (isNaN(costValue)) {
     return 'Cost is not a number';
   } else {
-    if (Number.isInteger(costValue)) {
-      cost = costValue.toString();
+    if (costValue < 1) {
+      cost = "00." + Math.round(costValue * 100);
     } else {
-      const costParts = styleData.cost.toString().split('.');
-      cost = costParts[0] + '.' + costParts[1].slice(0, 2);
+      const costParts = (costValue * 100).toString().split('.');
+      cost = costParts[0];
     }
   }
 
@@ -381,12 +398,13 @@ const generateCode = (): string => {
         margin: [3,3,3,3]
             },
             {
-              text: `R - ${styleData.msrp}`,
+              text: `R - ${parseFloat(styleData.msrp).toFixed(0)}`,
               width: '*',
               fontSize: portraitMode ? 16 : 20,
-        alignment: 'center',
-        margin: [3,3,3,3]
-            },
+              alignment: 'center',
+              margin: [3,3,3,3]
+            }
+            
           ],
         },
         {
@@ -461,12 +479,12 @@ const generateCode = (): string => {
         margin: [3,3,3,3]
             },
             {
-              text: `R - ${styleData.msrp}`,
+              text: `R - ${parseFloat(styleData.msrp).toFixed(0)}`,
               width: '*',
               fontSize: portraitMode ? 16 : 20,
-        alignment: 'center',
-        margin: [3,3,3,3]
-            },
+              alignment: 'center',
+              margin: [3,3,3,3]
+            }
           ],
         },
         {
@@ -515,21 +533,34 @@ const generateCode = (): string => {
     return (
         <div>
           <Homepage setNavbarOpened={setNavbarOpened}/>
-                 <Container  style={{marginTop: "125px"}}>
-        {!isLoading && !error && allocationData && styleData ? null : (
-          <Grid gutter="lg" justify="center" style={{marginTop: "50px"}}>
-            <Col span={4}>
-              <Input type="text" value={poNo} onChange={(e) => setPoNo(e.target.value)} placeholder="Enter po_no" mih={50}/>
-              <Input type="text" value={styleNo} onChange={(e) => setStyleNo(e.target.value)} placeholder="Enter style_no"  mih={50}/>
-              <Center>
-              <Button onClick={fetchAllocationData}>Get Allocation Data</Button>
-              </Center>
-              {error && <Text color="red">{error}</Text>}
-              {isLoading && <Text>Loading...</Text>}
-            </Col>
-          </Grid>
-        )}
-      </Container>
+          <Container style={{ marginTop: "125px" }}>
+  {!isLoading && !error && allocationData && styleData ? null : (
+    <Grid gutter="lg" justify="center" style={{ marginTop: "50px" }}>
+      <Col span={4}>
+        <Input
+          type="text"
+          value={poNo.toUpperCase()} // Convert to uppercase
+          onChange={(e) => setPoNo(e.target.value.toUpperCase())} // Convert to uppercase
+          placeholder="Enter po_no"
+          mih={50}
+        />
+        <Input
+          type="text"
+          value={styleNo.toUpperCase()} // Convert to uppercase
+          onChange={(e) => setStyleNo(e.target.value.toUpperCase())} // Convert to uppercase
+          placeholder="Enter style_no"
+          mih={50}
+        />
+        <Center>
+          <Button onClick={fetchAllocationData}>Get Allocation Data</Button>
+        </Center>
+        {error && <Text color="red">{error}</Text>}
+        {isLoading && <Text>Loading...</Text>}
+      </Col>
+    </Grid>
+  )}
+</Container>
+
 
            
             {styleData && (
@@ -542,7 +573,8 @@ const generateCode = (): string => {
       <TextInput
         label="Supplier Name"
         value={styleData.supplier_name}
-                ta="center"                  
+                ta="center"  
+                               
       />
       <TextInput
         label="Style Number"
@@ -603,7 +635,7 @@ const generateCode = (): string => {
                         sm: 720,
                         md: 960,
                         lg: 1140,
-                        xl: 1520,
+                        xl: 2340,
                       },
                     },
                   },
@@ -624,45 +656,54 @@ const generateCode = (): string => {
                   <th>Initial</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody style={{border:'1px solid #d0d0d0', borderRight:'1px solid #d0d0d0'}}>
           {/* Render received quantities as the second row */}
           <tr>
-          <td>RCV QTY</td>
+          <td >RCV QTY</td>
           {allocationData.receivedQty.map((receivedObj: any, i: number) => (
-            <td key={receivedObj.size}>
+            <td key={receivedObj.size} style={{borderLeft:'1px solid #d0d0d0'}}>
               <Input 
                 type='number' 
                 value={receivedObj.quantity} 
                 onChange={(e) => handleReceivedQtyChange(e, i)} 
                 style={{width:"100%"}}
+                size='md'
+                variant='unstyled'
+                
               />
             </td>
           ))}
-           <td><Input value={allocationData?.total} style={{width:"100%"}}/></td>
+           <td style={{borderLeft:'1px solid #d0d0d0', borderRight:'1px solid #d0d0d0'}}><Input value={allocationData?.total}  style={{width:"100%"}} size='md' variant='unstyled'/></td>
           </tr>
           {/* ... */}
           {/* Render size quantities for each store */}
           {allocationData.storeName.map((store: string, storeIndex: number) => (
-            <tr key={store}>
-              <td>{store}</td>
+            <tr key={store} >
+              <td >{store}</td>
               {allocationData.sizeQuantities[storeIndex].map((sizeObj: any, sizeIndex: number) => (
-                <td key={sizeObj.size}>
+                <td key={sizeObj.size} style={{borderLeft:'1px solid #d0d0d0'}}>
                   <Input 
                     type="number" 
                     value={sizeObj.quantity} 
                     onChange={(e) => handleSizeQuantityChange(e, storeIndex, sizeIndex)} 
                     style={{width:"100%"}}
+                    size='md'
+                    variant='unstyled'
                   />
                 </td>
               ))}
-              <td><Input value={storeTotals[storeIndex]} style={{ width: "100%" }} readOnly /></td>
+              <td style={{borderLeft:'1px solid #d0d0d0'}}><Input value={storeTotals[storeIndex]}  style={{width:"100%"}} size='md' variant='unstyled' readOnly /></td>
               {/* Handling initial */}
-              <td>
+             
+              <td style={{borderLeft:'1px solid #d0d0d0'}}>
+               
               <Input 
                 type='text' 
                 value={allocationData.initial[storeIndex]} 
                 onChange={(e) => handleInitialChange(e, storeIndex)} 
                 style={{width:"100%"}}
+                size='md'
+                variant='unstyled'
                 />
 
               </td>
@@ -670,25 +711,25 @@ const generateCode = (): string => {
             </tr>
           ))}
                 {/* Render the overstock row */}
-                <tr>
+                <tr style={{borderBottom:'1px solid #d0d0d0', borderTop:'1px solid #d0d0d0'}}>
                     
-                  <td>Total Allocation</td>
+                  <td style={{borderLeft:'1px solid #d0d0d0'}}>Total Allocation</td>
                   {allocationData.totalAllocationPerSize.map((quantity: number, index: number) => (
-                    <td key={index}><Input value={quantity} style={{width:"100%"}}/></td>
+                    <td key={index} style={{borderLeft:'1px solid #d0d0d0'}}><Input value={quantity}  style={{width:"100%"}} size='md' variant='unstyled'/></td>
                   ))}
-                 <td><Input  value={totalAllocation} style={{width:"100%"}} readOnly /></td>
+                 <td style={{borderLeft:'1px solid #d0d0d0', borderRight:'1px solid #d0d0d0'}}><Input  value={totalAllocation}  style={{width:"100%"}} size='md' variant='unstyled' readOnly /></td>
 
                 </tr>
-                <tr>
+                <tr style={{borderBottom:'1px solid #d0d0d0'}}>
                     
-                  <td>Overstock</td>
+                  <td style={{borderLeft:'1px solid #d0d0d0'}}>Overstock</td>
                   {allocationData.overstockPerSize.map((quantity: number, index: number) => (
-                    <td key={index}><Input value={quantity} style={{width:"100%"}}/></td>
+                    <td key={index} style={{borderLeft:'1px solid #d0d0d0'}}><Input value={quantity}  style={{width:"100%"}} size='md' variant='unstyled'/></td>
                   ))}
-                  <td><Input value={overstockTotal} style={{width:"100%"}}></Input></td>
+                  <td style={{borderLeft:'1px solid #d0d0d0' , borderRight:'1px solid #d0d0d0'}}><Input value={overstockTotal}  style={{width:"100%"}} size='md' variant='unstyled'></Input></td>
                   
                 </tr>
-               
+              
               </tbody>
             </Table>
             </Grid>
@@ -712,9 +753,8 @@ const generateCode = (): string => {
 />
 
  <Button onClick={generatePDF}>Generate PDF</Button>
-
-            <Button onClick={updateAllocationData}>SAVE CHANGES</Button>   
-            <Button onClick={updateAllocationData}>Push to Store</Button>          
+ <Button onClick={() => pushToWeb(styleNo, poNo)}>Push to Web</Button>
+            <Button onClick={updateAllocationData}>SAVE CHANGES</Button>            
             </Group>
             </Center>
           </Container>

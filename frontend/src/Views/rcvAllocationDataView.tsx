@@ -39,6 +39,7 @@ interface AllocationData {
   supplierName: string;
   poNo: string;
   status: boolean[];
+  initial: boolean[];
   skuNumbers: string[];
   sizeQuantities: SizeQuantity[][];
   styles: StyleData;
@@ -246,6 +247,14 @@ const AllocTable: React.FC = () => {
            Status
           </Text>
             </th>
+            <th>
+          <Text 
+                  ta="center"
+                  fz="lg"
+                  fw={600}>
+           Initial
+          </Text>
+            </th>
         </tr>
       </thead>
       <tbody>
@@ -278,6 +287,7 @@ const AllocTable: React.FC = () => {
           <td>{sq.quantity}</td>
           <td>{j === 0 ? total : ""}</td> {/* display total only on the first row */}
           <td>{j === 0 ? (allocation.status[i] ? "Done" : "NO") : ""}</td>
+          <td>{j === 0 ? (allocation.initial[i] ) : ""}</td>
         </tr>
       ));
     })
