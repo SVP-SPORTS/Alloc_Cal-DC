@@ -54,6 +54,7 @@ function App() {
 
  return(
   <>
+  
   <UserContext.Provider value={{ authenticatedUser, setAuthenticatedUser }}>
   <RefreshContext.Provider value={{ refresh, setRefresh }}> 
 

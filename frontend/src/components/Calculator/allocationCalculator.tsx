@@ -317,6 +317,8 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
         
       }
 
+
+
     //Step 1: Initialize
     // Create a mapping of store names to priorities
     let storePriorities: { [storeName: string]: number } = {};
@@ -366,7 +368,40 @@ const Alloc: React.ForwardRefRenderFunction<{ reset: () => void }, AllocProps> =
         totalAllocatedQty[storeIndex] += sizeAllocation;
       });
     });
-
+    
+      // Grouping stores by their standard quantities
+      const groupedStores: {[standardQty: number]: StoreData[]} = {};
+      newTableData.forEach((store, index) => {
+        if (!groupedStores[standardQuantities[index]]) {
+          groupedStores[standardQuantities[index]] = [];
+        }
+        groupedStores[standardQuantities[index]].push(store);
+      });
+  
+      // Calculating and assigning allocations for each group
+      Object.keys(groupedStores).forEach(standardQtyStr => {
+        const standardQty = parseInt(standardQtyStr);
+        const stores = groupedStores[standardQty];
+        const storeProportion: number = standardQty / totalProductionQuantity;
+  
+        stores.forEach(store => {
+          store.sizeQuantities.forEach((sizeData: SizeQuantity, sizeIndex: number) => {
+            sizeData.quantity = 0;  // Reset to zero
+            let sizeAllocation: number = Math.floor(totalProductionQuantities[sizeIndex] * storeProportion);
+  
+            // Ensure that the size allocation is at least 1 if there's enough quantity
+            if (sizeAllocation === 0 && remainingQuantities[sizeIndex] > 0) {
+              sizeAllocation = 1;
+              remainingQuantities[sizeIndex] -= 1;
+            }
+  
+            // Update the remaining quantities for that size
+            remainingQuantities[sizeIndex] -= sizeAllocation;
+            sizeData.quantity += sizeAllocation;
+          });
+        });
+      });
+  
  // Step 2: Redistribute quantities to minimize variance
  const calculateVariance = (sizeIndex: number): number => {
   // Calculate mean
@@ -968,9 +1003,7 @@ newTableData.forEach((storeData, storeIndex) => {
         </Container>
       </MantineProvider>
       <Container>
-        <Grid>
-
-        </Grid>
+        
       </Container>
 
       <Center style={{ marginTop: "25px", marginBottom: "10px" }} >
